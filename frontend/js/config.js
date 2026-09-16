@@ -30,6 +30,17 @@
   const eventSoundsEl = document.getElementById("eventSounds");
   const actionsEl = document.getElementById("actions");
   const randomActionsEl = document.getElementById("randomActions");
+  const modelCatalogEl = document.getElementById("modelCatalog");
+  const addSlotEl = document.getElementById("addSlot");
+  const extraSlotsEl = document.getElementById("extraSlots");
+  const codexOptionsEl = document.getElementById("codexOptions");
+  const codexEffortEl = document.getElementById("codexEffort");
+  const codexWireApiEl = document.getElementById("codexWireApi");
+  const codexDisableStorageEl = document.getElementById("codexDisableStorage");
+  const profileNameEl = document.getElementById("profileName");
+  const saveProfileEl = document.getElementById("saveProfile");
+  const deleteProfileEl = document.getElementById("deleteProfile");
+  const profileSelectEl = document.getElementById("profileSelect");
   const blinkIntervalMinSecEl = document.getElementById("blinkIntervalMinSec");
   const blinkIntervalMaxSecEl = document.getElementById("blinkIntervalMaxSec");
   const exhaustedModeEnabledEl = document.getElementById(
@@ -400,6 +411,145 @@
     if (toggleDialogueEl) toggleDialogueEl.textContent = "收起";
   }
 
+  // —— 模型预设（模型名 + 上下文窗口）——
+  // 窗口大小取自本项目内置默认值；deepseek-v4-pro 的窗口未核实，用 0 表示「不自动填充」。
+  var MODEL_CATALOG = [
+    { name: "deepseek-v4-flash", window: 1000000 },
+    { name: "deepseek-flash", window: 1000000 },
+    { name: "deepseek-v4-flash-vision-exp", window: 1000000 },
+    { name: "deepseek-v4-pro", window: 0 },
+  ];
+
+  function catalogWindow(name) {
+    for (var i = 0; i < MODEL_CATALOG.length; i++) {
+      if (MODEL_CATALOG[i].name === name) return MODEL_CATALOG[i].window;
+    }
+    return 0;
+  }
+
+  // 填充模型名下拉候选（datalist 仅作建议，仍可自由输入）。
+  function fillModelCatalog() {
+    if (!modelCatalogEl) return;
+    modelCatalogEl.innerHTML = "";
+    MODEL_CATALOG.forEach(function (item) {
+      const opt = document.createElement("option");
+      opt.value = item.name;
+      if (item.window > 0) opt.label = item.window + " token";
+      modelCatalogEl.appendChild(opt);
+    });
+  }
+
+  // 渲染额外槽位编辑区。
+  function renderExtraSlots() {
+    if (!extraSlotsEl || !config) return;
+    const slots = currentModels().extraSlots || [];
+    extraSlotsEl.innerHTML = "";
+    if (!slots.length) {
+      const empty = document.createElement("div");
+      empty.className = "slot-empty";
+      empty.textContent = "（暂无额外槽位；写入 Claude 配置时为 ANTHROPIC_DEFAULT_<KEY>_MODEL）";
+      extraSlotsEl.appendChild(empty);
+      return;
+    }
+    slots.forEach(function (slot, idx) {
+      const row = document.createElement("div");
+      row.className = "slot-row";
+
+      const enabled = document.createElement("input");
+      enabled.type = "checkbox";
+      enabled.checked = slot.enabled !== false;
+      enabled.title = "是否写入客户端配置";
+      enabled.addEventListener("change", function (e) {
+        slots[idx].enabled = e.target.checked;
+        debouncedSave();
+      });
+
+      const key = document.createElement("input");
+      key.type = "text";
+      key.className = "slot-key";
+      key.placeholder = "key";
+      key.value = slot.key || "";
+      key.addEventListener("input", function (e) {
+        slots[idx].key = e.target.value.trim();
+        debouncedSave();
+      });
+
+      const name = document.createElement("input");
+      name.type = "text";
+      name.className = "model-input";
+      name.placeholder = "模型名称";
+      name.setAttribute("list", "modelCatalog");
+      name.value = slot.name || "";
+      name.addEventListener("input", function (e) {
+        const value = e.target.value.trim();
+        slots[idx].name = value;
+        const presetWindow = catalogWindow(value);
+        if (presetWindow > 0) {
+          slots[idx].contextWindow = presetWindow;
+          ctx.value = String(presetWindow);
+        }
+        debouncedSave();
+      });
+
+      const ctx = document.createElement("input");
+      ctx.type = "number";
+      ctx.className = "model-ctx";
+      ctx.min = "1";
+      ctx.step = "1";
+      ctx.value = slot.contextWindow || "";
+      ctx.addEventListener("input", function (e) {
+        slots[idx].contextWindow = Math.max(1, Math.floor(Number(e.target.value) || 0));
+        debouncedSave();
+      });
+
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "toggle-eye slot-del";
+      del.textContent = "删除";
+      del.addEventListener("click", function () {
+        slots.splice(idx, 1);
+        renderExtraSlots();
+        debouncedSave();
+      });
+
+      row.appendChild(enabled);
+      row.appendChild(key);
+      row.appendChild(name);
+      row.appendChild(ctx);
+      row.appendChild(del);
+      extraSlotsEl.appendChild(row);
+    });
+  }
+
+  // Codex 专属写入项：仅在 Codex 供应商下显示。
+  function applyCodexOptions() {
+    if (!config) return;
+    if (codexEffortEl) codexEffortEl.value = config.codexReasoningEffort || "high";
+    if (codexWireApiEl) codexWireApiEl.value = config.codexWireApi || "chat";
+    if (codexDisableStorageEl) {
+      codexDisableStorageEl.checked = config.codexDisableResponseStorage !== false;
+    }
+    if (codexOptionsEl) codexOptionsEl.hidden = activeProvider !== "codex";
+  }
+
+  // 多套配置方案列表。
+  function renderProfiles() {
+    if (!profileSelectEl || !config) return;
+    const profiles = config.profiles || [];
+    profileSelectEl.innerHTML = "";
+    const none = document.createElement("option");
+    none.value = "";
+    none.textContent = profiles.length ? "（未选择）" : "（暂无方案，先「另存为」）";
+    profileSelectEl.appendChild(none);
+    profiles.forEach(function (p) {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.name || p.id;
+      profileSelectEl.appendChild(opt);
+    });
+    profileSelectEl.value = config.activeProfile || "";
+  }
+
   // 渲染当前供应商的模型配置。
   function renderModels() {
     if (!config) return;
@@ -413,6 +563,9 @@
     });
     provClaudeEl.classList.toggle("active", activeProvider === "claude");
     provCodexEl.classList.toggle("active", activeProvider === "codex");
+    renderExtraSlots();
+    applyCodexOptions();
+    renderProfiles();
   }
 
   function switchProvider(provider) {
@@ -426,6 +579,8 @@
   provCodexEl.addEventListener("click", function () {
     switchProvider("codex");
   });
+
+  fillModelCatalog();
 
   // 首次加载完整配置并回填全部表单。
   invoke("get_config")
@@ -477,7 +632,15 @@
       .querySelector('[data-field="name"]')
       .addEventListener("input", function (e) {
         const m = currentModels()[key];
-        if (m) m.name = e.target.value.trim();
+        const value = e.target.value.trim();
+        if (m) m.name = value;
+        // 命中预设时自动带出上下文窗口（仍可手动改回）。
+        const presetWindow = catalogWindow(value);
+        if (presetWindow > 0 && m && m.contextWindow !== presetWindow) {
+          m.contextWindow = presetWindow;
+          const ctxInput = row.querySelector('[data-field="contextWindow"]');
+          if (ctxInput) ctxInput.value = String(presetWindow);
+        }
         debouncedSave();
       });
     row
@@ -489,6 +652,95 @@
         debouncedSave();
       });
   });
+
+  // —— 额外槽位 / Codex 写入项 / 配置方案 的交互 ——
+  if (addSlotEl)
+    addSlotEl.addEventListener("click", function () {
+      if (!config) return;
+      const models = currentModels();
+      if (!Array.isArray(models.extraSlots)) models.extraSlots = [];
+      models.extraSlots.push({
+        key: "",
+        label: "",
+        name: "",
+        contextWindow: 1000000,
+        enabled: true,
+      });
+      renderExtraSlots();
+      debouncedSave();
+    });
+
+  if (codexEffortEl)
+    codexEffortEl.addEventListener("change", function (e) {
+      config.codexReasoningEffort = e.target.value;
+      debouncedSave();
+    });
+
+  if (codexWireApiEl)
+    codexWireApiEl.addEventListener("change", function (e) {
+      config.codexWireApi = e.target.value;
+      debouncedSave();
+    });
+
+  if (codexDisableStorageEl)
+    codexDisableStorageEl.addEventListener("change", function (e) {
+      config.codexDisableResponseStorage = e.target.checked;
+      debouncedSave();
+    });
+
+  if (profileSelectEl)
+    profileSelectEl.addEventListener("change", function (e) {
+      const id = e.target.value;
+      if (!id) return;
+      invoke("apply_profile", { id: id })
+        .then(function (cfg) {
+          config = cfg;
+          lastSavedBalanceSource = getBalanceSourceSnapshot(cfg);
+          apiKeyEl.value = cfg.apiKey || "";
+          baseUrlEl.value = currentBaseUrl() || "";
+          applyWidgetToUi(cfg.widget || {});
+          renderModels();
+          showTip("已切换到「" + (cfg.activeProfile || id) + "」");
+        })
+        .catch(function (err) {
+          console.error("切换配置失败", err);
+          showTip("切换配置失败");
+        });
+    });
+
+  if (saveProfileEl)
+    saveProfileEl.addEventListener("click", function () {
+      const name = profileNameEl ? profileNameEl.value.trim() : "";
+      invoke("save_profile", { name: name })
+        .then(function (cfg) {
+          config = cfg;
+          renderProfiles();
+          showTip("已保存配置方案");
+        })
+        .catch(function (err) {
+          console.error("保存配置失败", err);
+          showTip("保存配置失败");
+        });
+    });
+
+  if (deleteProfileEl)
+    deleteProfileEl.addEventListener("click", function () {
+      const id = profileSelectEl ? profileSelectEl.value : "";
+      if (!id) {
+        showTip("请先选择一个方案");
+        return;
+      }
+      invoke("delete_profile", { id: id })
+        .then(function (cfg) {
+          config = cfg;
+          renderProfiles();
+          showTip("已删除配置方案");
+        })
+        .catch(function (err) {
+          console.error("删除配置失败", err);
+          showTip("删除配置失败");
+        });
+    });
 
   // 滑杆档位映射为实际缩放倍率后再保存。
   widgetScaleEl.addEventListener("input", function (e) {

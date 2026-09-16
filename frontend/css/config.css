@@ -280,3 +280,26 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 .tip-modal .modal-title { color: #2e9e5b; }
 .tip-modal .modal-btn-primary { background: #2e9e5b; border-color: #2e9e5b; }
 .tip-modal .modal-btn-primary:hover { background: #27874e; border-color: #27874e; }
+
+/* 模型配置：额外槽位与配置方案 */
+.sub-head { margin-top: 14px; margin-bottom: 6px; }
+.slot-list { display: flex; flex-direction: column; gap: 8px; }
+.slot-row { display: flex; align-items: center; gap: 8px; }
+.slot-row .slot-key { width: 92px; flex: 0 0 auto; }
+.slot-row .model-input { flex: 1 1 auto; min-width: 0; }
+.slot-row .model-ctx { width: 96px; flex: 0 0 auto; }
+.slot-del { flex: 0 0 auto; }
+.slot-empty { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.profile-name { width: 104px; }
+#extraSlots input,
+#profileSelect,
+#codexEffort,
+#codexWireApi {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 9px;
+  font-size: 13px;
+  color: var(--text);
+  background: #fff;
+}
+#profileSelect { width: 100%; }

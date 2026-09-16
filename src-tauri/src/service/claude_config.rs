@@ -52,6 +52,33 @@ pub fn write_claude_settings(cfg: &crate::config::AppConfig) -> Result<(), Strin
         json!(cfg.models.primary.context_window),
     );
 
+    // 额外槽位：每个启用的槽位写一条 ANTHROPIC_DEFAULT_<KEY>_MODEL（KEY 已规范化）。
+    for slot in &cfg.models.extra_slots {
+        if !slot.enabled || slot.name.trim().is_empty() {
+            continue;
+        }
+        let key = dsw_core::config_util::sanitize_slot_key(&slot.key);
+        env.insert(
+            format!("ANTHROPIC_DEFAULT_{}_MODEL", key),
+            json!(slot.name.trim()),
+        );
+        if slot.context_window > 0 {
+            env.insert(
+                format!("ANTHROPIC_{}_CONTEXT_WINDOW", key),
+                json!(slot.context_window),
+            );
+        }
+    }
+
+    // 高级：用户自定义的额外环境变量（键为空则跳过）。
+    for pair in &cfg.claude_extra_env {
+        let key = pair.key.trim();
+        if key.is_empty() {
+            continue;
+        }
+        env.insert(key.to_string(), json!(pair.value));
+    }
+
     // 写回合并后的 settings.json，保留非 env 配置项。
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;

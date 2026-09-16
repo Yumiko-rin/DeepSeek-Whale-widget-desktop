@@ -32,8 +32,13 @@ pub fn write_codex_settings(cfg: &crate::config::AppConfig) -> Result<(), String
     let context_window = cfg.codex_models.primary.context_window;
     let base_url = cfg.codex_base_url.trim_end_matches('/').to_string();
 
+    // 推理强度 / 线协议 / 响应存储改为可配置（此前分别写死为 high / chat / true）。
+    let effort = dsw_core::config_util::normalize_reasoning_effort(&cfg.codex_reasoning_effort);
+    let wire_api = dsw_core::config_util::normalize_wire_api(&cfg.codex_wire_api);
+    let disable_storage = cfg.codex_disable_response_storage;
+
     let config_toml = format!(
-        "model_provider = \"custom\"\nmodel = \"{model}\"\nmodel_reasoning_effort = \"high\"\ndisable_response_storage = true\nmodel_context_window = {context_window}\n\n[model_providers.custom]\nname = \"DeepSeek\"\nbase_url = \"{base_url}\"\nwire_api = \"chat\"\nrequires_openai_auth = true\n"
+        "model_provider = \"custom\"\nmodel = \"{model}\"\nmodel_reasoning_effort = \"{effort}\"\ndisable_response_storage = {disable_storage}\nmodel_context_window = {context_window}\n\n[model_providers.custom]\nname = \"DeepSeek\"\nbase_url = \"{base_url}\"\nwire_api = \"{wire_api}\"\nrequires_openai_auth = true\n"
     );
     fs::write(codex_config_path(), config_toml).map_err(|e| e.to_string())?;
 

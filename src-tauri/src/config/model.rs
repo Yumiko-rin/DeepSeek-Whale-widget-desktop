@@ -35,6 +35,78 @@ impl ModelEntry {
     }
 }
 
+/// 用户自定义的额外模型槽位。
+///
+/// 写入 Claude 配置时会生成 `ANTHROPIC_DEFAULT_<KEY>_MODEL`（KEY 由 `key` 规范化而来），
+/// 因此不再局限于主模型 / Haiku / Sonnet / Opus 四档。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelSlot {
+    /// 槽位 key（用于生成环境变量名，写入前会被规范化）。
+    #[serde(default)]
+    pub key: String,
+    /// 展示名（仅用于界面）。
+    #[serde(default)]
+    pub label: String,
+    /// 模型名称。
+    #[serde(default)]
+    pub name: String,
+    /// 上下文窗口大小（token 数）。
+    #[serde(default)]
+    pub context_window: u32,
+    /// 是否写入客户端配置（关掉则只保存不落盘）。
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+}
+
+/// 额外写入 Claude 配置的环境变量键值对。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnvPair {
+    /// 变量名。
+    #[serde(default)]
+    pub key: String,
+    /// 变量值。
+    #[serde(default)]
+    pub value: String,
+}
+
+/// 一套可切换的完整配置（类似 cc-switch 的 provider 配置）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Profile {
+    /// 唯一 id。
+    #[serde(default)]
+    pub id: String,
+    /// 展示名。
+    #[serde(default)]
+    pub name: String,
+    /// 该配置使用的 API Key。
+    #[serde(default)]
+    pub api_key: String,
+    /// Claude 请求根地址。
+    #[serde(default = "default_base_url")]
+    pub base_url: String,
+    /// Codex 请求根地址。
+    #[serde(default = "default_codex_base_url")]
+    pub codex_base_url: String,
+    /// Claude 模型配置。
+    #[serde(default)]
+    pub models: ModelConfig,
+    /// Codex 模型配置。
+    #[serde(default)]
+    pub codex_models: ModelConfig,
+    /// Codex 推理强度。
+    #[serde(default = "default_reasoning_effort")]
+    pub codex_reasoning_effort: String,
+    /// Codex 线协议。
+    #[serde(default = "default_wire_api")]
+    pub codex_wire_api: String,
+    /// Codex 是否禁用响应存储。
+    #[serde(default = "default_true")]
+    pub codex_disable_response_storage: bool,
+}
+
 /// Haiku / Sonnet / Opus 三个系列的默认调用模型配置。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -47,6 +119,9 @@ pub struct ModelConfig {
     pub sonnet: ModelEntry,
     /// 旗舰推理档（Opus）。
     pub opus: ModelEntry,
+    /// 额外槽位（用户可增删；旧配置无此字段时为空）。
+    #[serde(default)]
+    pub extra_slots: Vec<ModelSlot>,
 }
 
 impl Default for ModelConfig {
@@ -57,6 +132,7 @@ impl Default for ModelConfig {
             haiku: ModelEntry::new("deepseek-v4-flash", 1_000_000),
             sonnet: ModelEntry::new("deepseek-v4-flash", 1_000_000),
             opus: ModelEntry::new("deepseek-v4-flash", 1_000_000),
+            extra_slots: Vec::new(),
         }
     }
 }
@@ -251,6 +327,39 @@ pub struct AppConfig {
     /// 挂件上次保存的位置与朝向。
     #[serde(default)]
     pub widget_position: Option<WidgetPosition>,
+    /// Codex 推理强度：`minimal` / `low` / `medium` / `high`（此前写死为 high）。
+    #[serde(default = "default_reasoning_effort")]
+    pub codex_reasoning_effort: String,
+    /// Codex 线协议：`chat` / `responses`（此前写死为 chat）。
+    #[serde(default = "default_wire_api")]
+    pub codex_wire_api: String,
+    /// Codex 是否禁用响应存储（此前写死为 true）。
+    #[serde(default = "default_true")]
+    pub codex_disable_response_storage: bool,
+    /// 额外写入 Claude 配置的环境变量（高级选项）。
+    #[serde(default)]
+    pub claude_extra_env: Vec<EnvPair>,
+    /// 多套可切换配置（一键切换站点 / Key / 模型组合）。
+    #[serde(default)]
+    pub profiles: Vec<Profile>,
+    /// 当前激活的配置 id（为空表示直接使用顶层字段）。
+    #[serde(default)]
+    pub active_profile: String,
+}
+
+/// 返回默认 Codex 推理强度。
+fn default_reasoning_effort() -> String {
+    "high".to_string()
+}
+
+/// 返回默认 Codex 线协议。
+fn default_wire_api() -> String {
+    "chat".to_string()
+}
+
+/// 布尔字段默认值：true。
+fn default_true() -> bool {
+    true
 }
 
 /// 返回默认 Claude 请求根地址。
@@ -322,6 +431,12 @@ impl Default for AppConfig {
             global_color: "#203170".to_string(),
             dialogue: DialogueConfig::default(),
             widget_position: None,
+            codex_reasoning_effort: default_reasoning_effort(),
+            codex_wire_api: default_wire_api(),
+            codex_disable_response_storage: true,
+            claude_extra_env: Vec::new(),
+            profiles: Vec::new(),
+            active_profile: String::new(),
         }
     }
 }

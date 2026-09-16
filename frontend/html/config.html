@@ -58,28 +58,77 @@
 
           <div class="model-row" data-model="primary">
             <span class="model-name">主模型</span>
-            <input class="model-input" data-field="name" type="text" placeholder="模型名称" />
+            <input class="model-input" data-field="name" type="text" placeholder="模型名称" list="modelCatalog" />
             <input class="model-ctx" data-field="contextWindow" type="number" min="1" step="1" />
             <span class="ctx-unit">token</span>
           </div>
           <div class="model-row" data-model="haiku">
             <span class="model-name">Haiku</span>
-            <input class="model-input" data-field="name" type="text" placeholder="模型名称" />
+            <input class="model-input" data-field="name" type="text" placeholder="模型名称" list="modelCatalog" />
             <input class="model-ctx" data-field="contextWindow" type="number" min="1" step="1" />
             <span class="ctx-unit">token</span>
           </div>
           <div class="model-row" data-model="sonnet">
             <span class="model-name">Sonnet</span>
-            <input class="model-input" data-field="name" type="text" placeholder="模型名称" />
+            <input class="model-input" data-field="name" type="text" placeholder="模型名称" list="modelCatalog" />
             <input class="model-ctx" data-field="contextWindow" type="number" min="1" step="1" />
             <span class="ctx-unit">token</span>
           </div>
           <div class="model-row" data-model="opus">
             <span class="model-name">Opus</span>
-            <input class="model-input" data-field="name" type="text" placeholder="模型名称" />
+            <input class="model-input" data-field="name" type="text" placeholder="模型名称" list="modelCatalog" />
             <input class="model-ctx" data-field="contextWindow" type="number" min="1" step="1" />
             <span class="ctx-unit">token</span>
           </div>
+          <datalist id="modelCatalog"></datalist>
+
+          <!-- 额外槽位（可增删；写入 Claude 配置为 ANTHROPIC_DEFAULT_<KEY>_MODEL） -->
+          <div class="model-head sub-head">
+            <span class="field-label short">额外槽位</span>
+            <button id="addSlot" type="button" class="toggle-eye">添加槽位</button>
+          </div>
+          <div id="extraSlots" class="slot-list"></div>
+
+          <!-- Codex 专属可写入项 -->
+          <div id="codexOptions" hidden>
+            <label class="field">
+              <span class="field-label short">推理强度</span>
+              <select id="codexEffort">
+                <option value="minimal">minimal（最省）</option>
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high（默认）</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label short">线协议</span>
+              <select id="codexWireApi">
+                <option value="chat">chat（默认）</option>
+                <option value="responses">responses</option>
+              </select>
+            </label>
+            <div class="sys-row">
+              <div class="sys-title">禁用响应存储</div>
+              <label class="switch">
+                <input id="codexDisableStorage" type="checkbox" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 多套配置方案：一键切换站点 / Key / 模型组合 -->
+          <div class="model-head sub-head">
+            <span class="field-label short">配置方案</span>
+            <div class="dialogue-actions">
+              <input id="profileName" type="text" class="profile-name" placeholder="新方案名" />
+              <button id="saveProfile" type="button" class="toggle-eye">另存为</button>
+              <button id="deleteProfile" type="button" class="toggle-eye">删除</button>
+            </div>
+          </div>
+          <label class="field">
+            <span class="field-label short">当前方案</span>
+            <select id="profileSelect"></select>
+          </label>
         </section>
 
         <!-- 挂件显示 -->
