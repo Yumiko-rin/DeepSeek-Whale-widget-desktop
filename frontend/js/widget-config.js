@@ -169,10 +169,103 @@ window.DSW = window.DSW || {};
     }).catch(function () {});
   }
 
+  // 归一化一条台词：兼容旧的纯字符串与新的对象（文本 + 分类 + 权重 + 开关）两种形态。
+  function normalizeDialogueLine(raw) {
+    if (typeof raw === "string") {
+      return { text: raw, tags: [], weight: 1, enabled: true };
+    }
+    if (raw && typeof raw === "object") {
+      return {
+        text: typeof raw.text === "string" ? raw.text : "",
+        tags: Array.isArray(raw.tags) ? raw.tags.slice() : [],
+        weight:
+          typeof raw.weight === "number" && raw.weight > 0
+            ? Math.floor(raw.weight)
+            : 1,
+        enabled: raw.enabled !== false,
+      };
+    }
+    return null;
+  }
+
+  // 占位符插值：{balance} {today} {time} {date} {period} {mood}
+  function interpolate(text) {
+    if (!text || text.indexOf("{") === -1) return text;
+    var pad = function (n) {
+      return String(n).padStart(2, "0");
+    };
+    var now = new Date();
+    var map = {
+      balance:
+        state.balance === null || state.balance === undefined
+          ? "--"
+          : DSW.balance.fmt(state.balance, state.currency),
+      today:
+        state.todayUsage === null || state.todayUsage === undefined
+          ? "--"
+          : DSW.balance.fmt(state.todayUsage, state.currency),
+      time: pad(now.getHours()) + ":" + pad(now.getMinutes()),
+      date:
+        now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()),
+      period: state.isPeak ? "高峰时段" : "空闲时段",
+      mood: flags.mood,
+    };
+    return text.replace(/\{(\w+)\}/g, function (whole, key) {
+      return Object.prototype.hasOwnProperty.call(map, key) ? String(map[key]) : whole;
+    });
+  }
+
+  // 当前情境标签，供「按情境选句」筛选分类。
+  function contextTags() {
+    var tags = [state.isPeak ? "peak" : "offpeak"];
+    var hour = new Date().getHours();
+    if (hour >= 23 || hour < 6) tags.push("night");
+    var balance = Number(state.balance);
+    if (isFinite(balance)) {
+      if (balance < flags.exhaustedBalanceThreshold) tags.push("low");
+      else if (balance >= 50) tags.push("rich");
+    }
+    return tags;
+  }
+
+  // 按权重抽一条。
+  function pickWeighted(pool) {
+    if (!pool.length) return null;
+    var total = 0;
+    pool.forEach(function (line) {
+      total += Math.max(1, line.weight || 1);
+    });
+    var roll = Math.random() * total;
+    for (var i = 0; i < pool.length; i++) {
+      roll -= Math.max(1, pool[i].weight || 1);
+      if (roll <= 0) return pool[i];
+    }
+    return pool[pool.length - 1];
+  }
+
+  // 可用台词池：按情境筛分类；若一个都没命中则回落到全部启用台词。
+  function availableLines() {
+    var enabled = flags.dialogueLines.filter(function (line) {
+      return line.enabled !== false;
+    });
+    if (!flags.dialogueContextMode) return enabled;
+    var tags = contextTags();
+    var matched = enabled.filter(function (line) {
+      if (!line.tags || !line.tags.length) return true; // 未分类＝通用
+      return line.tags.some(function (t) {
+        return tags.indexOf(t) !== -1;
+      });
+    });
+    return matched.length ? matched : enabled;
+  }
+
   // 应用台词配置。
   function applyDialogueConfig(dlg) {
     if (!dlg) return;
-    flags.dialogueLines = Array.isArray(dlg.lines) ? dlg.lines.slice() : [];
+    const list = Array.isArray(dlg.lines) ? dlg.lines : [];
+    flags.dialogueLines = list.map(normalizeDialogueLine).filter(function (line) {
+      return line && line.text;
+    });
     flags.dialogueMode =
       dlg.mode === "carousel" || dlg.mode === "random" ? dlg.mode : "random";
     flags.dialogueIntervalMin =
@@ -181,7 +274,14 @@ window.DSW = window.DSW || {};
         : 5;
     flags.dialogueJitter =
       typeof dlg.jitter === "number" ? DSW.balance.clamp(dlg.jitter, 0, 100) : 0;
+    flags.dialogueContextMode = dlg.contextMode !== false;
+    flags.dialogueNoRepeat =
+      typeof dlg.noRepeat === "number" && dlg.noRepeat >= 0
+        ? Math.floor(dlg.noRepeat)
+        : 3;
+    flags.moodLines = dlg.moodLines || null;
     flags.dialogueIndex = 0;
+    flags.recentLines = [];
     // 新配置生效后重新排期，避免沿用旧 timer。
     scheduleNextDialogue();
   }
@@ -195,21 +295,49 @@ window.DSW = window.DSW || {};
     return Math.round(delay);
   }
 
-  // 选择下一条台词（random / carousel）。
+  // 选择下一条台词（random / carousel），并遵守「最近 N 条不重复」。
   function pickDialogueLine() {
-    if (!flags.dialogueLines.length) return null;
-    if (flags.dialogueMode === "random") {
-      return flags.dialogueLines[Math.floor(Math.random() * flags.dialogueLines.length)];
+    var pool = availableLines();
+    if (!pool.length) return null;
+    var limit = flags.dialogueNoRepeat || 0;
+    var recent = flags.recentLines || [];
+    if (limit > 0 && pool.length > 1) {
+      var filtered = pool.filter(function (line) {
+        return recent.indexOf(line.text) === -1;
+      });
+      if (filtered.length) pool = filtered;
     }
-    const line = flags.dialogueLines[flags.dialogueIndex % flags.dialogueLines.length];
-    flags.dialogueIndex = (flags.dialogueIndex + 1) % flags.dialogueLines.length;
-    return line;
+    var line =
+      flags.dialogueMode === "random"
+        ? pickWeighted(pool)
+        : pool[flags.dialogueIndex % pool.length];
+    if (!line) return null;
+    if (flags.dialogueMode !== "random") {
+      flags.dialogueIndex = (flags.dialogueIndex + 1) % pool.length;
+    }
+    recent.push(line.text);
+    while (recent.length > Math.max(0, limit)) recent.shift();
+    flags.recentLines = recent;
+    return interpolate(line.text);
   }
 
-  // 从台词配置源中随机取一条台词，供点击反馈等即时展示使用。
+  // 即时反馈用：从全部启用台词里按权重取一条。
   function pickRandomDialogueLine() {
-    if (!flags.dialogueLines.length) return null;
-    return flags.dialogueLines[Math.floor(Math.random() * flags.dialogueLines.length)];
+    var enabled = flags.dialogueLines.filter(function (line) {
+      return line.enabled !== false;
+    });
+    var line = pickWeighted(enabled);
+    return line ? interpolate(line.text) : null;
+  }
+
+  // 取表情台词（angry / shy / disappointed / lonely / exhausted / back），供 expression.js 使用。
+  function pickMoodLine(kind, fallback) {
+    var pool =
+      flags.moodLines && Array.isArray(flags.moodLines[kind])
+        ? flags.moodLines[kind]
+        : null;
+    if (!pool || !pool.length) return fallback || null;
+    return interpolate(pool[Math.floor(Math.random() * pool.length)]);
   }
 
   // 暂停台词调度。
@@ -221,11 +349,16 @@ window.DSW = window.DSW || {};
   }
 
   function pickExhaustedPromptLine() {
-    if (!EXHAUSTED_LINES.length) return null;
-    var line = EXHAUSTED_LINES[flags.exhaustedPromptIndex % EXHAUSTED_LINES.length];
+    // 优先用可编辑的配置台词，缺失时回落到内置默认。
+    var pool =
+      flags.moodLines && Array.isArray(flags.moodLines.exhausted) && flags.moodLines.exhausted.length
+        ? flags.moodLines.exhausted
+        : EXHAUSTED_LINES;
+    if (!pool.length) return null;
+    var text = pool[flags.exhaustedPromptIndex % pool.length];
     flags.exhaustedPromptIndex =
-      (flags.exhaustedPromptIndex + 1) % EXHAUSTED_LINES.length;
-    return line;
+      (flags.exhaustedPromptIndex + 1) % pool.length;
+    return interpolate(text);
   }
 
   function pauseExhaustedPrompts() {
@@ -309,6 +442,8 @@ window.DSW = window.DSW || {};
     nextDialogueDelayMs: nextDialogueDelayMs,
     pickDialogueLine: pickDialogueLine,
     pickRandomDialogueLine: pickRandomDialogueLine,
+    pickMoodLine: pickMoodLine,
+    interpolate: interpolate,
     pauseDialogue: pauseDialogue,
     pickExhaustedPromptLine: pickExhaustedPromptLine,
     pauseExhaustedPrompts: pauseExhaustedPrompts,

@@ -206,6 +206,14 @@ window.DSW = window.DSW || {};
     DSW.bubble.showDialogueLine(text);
   }
 
+  // 取一条可编辑的表情台词（配置缺失时回落到内置默认文案）。
+  function moodLine(kind, fallback) {
+    if (DSW.widgetConfig && DSW.widgetConfig.pickMoodLine) {
+      return DSW.widgetConfig.pickMoodLine(kind, fallback);
+    }
+    return fallback;
+  }
+
   // 重置主状态下的点击序列计数。
   function resetWhaleClickSequence() {
     flags.lastWhaleClickAt = 0;
@@ -308,7 +316,7 @@ window.DSW = window.DSW || {};
     clearMoodTimers();
     DSW.widgetConfig.pauseDialogue();
     setIcon(C.IMG_ANGRY);
-    showMoodBubble("你再摸人家就生气了喵 (╬ Ò﹏Ó)");
+    showMoodBubble(moodLine("angry", "你再摸人家就生气了喵 (╬ Ò﹏Ó)"));
     flags.moodTimer = setTimeout(function () {
       flags.moodTimer = null;
       exitAngry();
@@ -338,11 +346,11 @@ window.DSW = window.DSW || {};
     clearMoodTimers();
     DSW.widgetConfig.pauseDialogue();
     setIcon(C.IMG_DISAPPOINTED);
-    showMoodBubble("鲸鲸没人要了喵 (╥﹏╥)");
+    showMoodBubble(moodLine("disappointed", "鲸鲸没人要了喵 (╥﹏╥)"));
     flags.lonelyCarouselTimer = setInterval(function () {
-      const line =
+      const fallback =
         LONELY_LINES[Math.floor(Math.random() * LONELY_LINES.length)];
-      showMoodBubble(line);
+      showMoodBubble(moodLine("lonely", fallback));
     }, C.LONELY_CAROUSEL_MS);
     flags.clickLog = [];
     resetWhaleClickSequence();
@@ -355,7 +363,7 @@ window.DSW = window.DSW || {};
     clearMoodTimers();
     clearHoverTimer();
     setIcon(getPressIcon());
-    showMoodBubble("你终于想起本鲸了喵 (=￣ω￣=)");
+    showMoodBubble(moodLine("back", "你终于想起本鲸了喵 (=￣ω￣=)"));
     resetWhaleClickSequence();
     DSW.widgetConfig.scheduleNextDialogue();
     resetIdle();
@@ -378,7 +386,7 @@ window.DSW = window.DSW || {};
     resetWhaleClickSequence();
     DSW.widgetConfig.pauseDialogue();
     setIcon(C.IMG_SHY);
-    showMoodBubble("主人摸本鲸头了喵 (≧◡≦)♡");
+    showMoodBubble(moodLine("shy", "主人摸本鲸头了喵 (≧◡≦)♡"));
     flags.moodTimer = setTimeout(function () {
       flags.moodTimer = null;
       exitShy(false);
@@ -438,7 +446,7 @@ window.DSW = window.DSW || {};
       flags.clickLog.length >= C.HIGH_FREQ_WARN_COUNT &&
       flags.clickLog.length < C.HIGH_FREQ_COUNT
     ) {
-      showMoodBubble("你再摸人家就生气了喵 (╬ Ò﹏Ó)");
+      showMoodBubble(moodLine("angry", "你再摸人家就生气了喵 (╬ Ò﹏Ó)"));
       return;
     }
     if (flags.clickLog.length >= C.HIGH_FREQ_COUNT) {

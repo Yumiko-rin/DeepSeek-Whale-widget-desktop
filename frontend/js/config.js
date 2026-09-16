@@ -50,6 +50,8 @@
     "exhaustedBalanceThreshold",
   );
   const addCustomSoundEl = document.getElementById("addCustomSound");
+  const dialogueContextEl = document.getElementById("dialogueContext");
+  const dialogueNoRepeatEl = document.getElementById("dialogueNoRepeat");
   const globalColorEl = document.getElementById("globalColor");
   const bubbleColorEl = document.getElementById("bubbleColor");
   const resetColorEl = document.getElementById("resetColor");
@@ -352,35 +354,129 @@
     saveWidgetDebounced();
   }
 
-  // 渲染台词列表编辑区。
+  // 归一化一条台词（兼容旧的纯字符串形态）。
+  function normalizeLine(raw) {
+    if (typeof raw === "string") {
+      return { text: raw, tags: [], weight: 1, enabled: true };
+    }
+    if (raw && typeof raw === "object") {
+      return {
+        text: typeof raw.text === "string" ? raw.text : "",
+        tags: Array.isArray(raw.tags) ? raw.tags.slice() : [],
+        weight:
+          typeof raw.weight === "number" && raw.weight > 0
+            ? Math.floor(raw.weight)
+            : 1,
+        enabled: raw.enabled !== false,
+      };
+    }
+    return { text: "", tags: [], weight: 1, enabled: true };
+  }
+
+  // 渲染台词列表编辑区（文本 + 分类 + 权重 + 启用）。
   function renderDialogueList() {
     if (!dialogueListEl || !config || !config.dialogue) return;
     dialogueListEl.innerHTML = "";
+    const raw = config.dialogue.lines || [];
+    // 首次渲染时把旧的纯字符串统一成对象，保证后续编辑结构一致。
+    if (
+      raw.some(function (l) {
+        return typeof l === "string";
+      })
+    ) {
+      config.dialogue.lines = raw.map(normalizeLine);
+    }
     const lines = config.dialogue.lines || [];
     lines.forEach(function (line, idx) {
       const row = document.createElement("div");
       row.className = "dialogue-row";
+
+      const enabled = document.createElement("input");
+      enabled.type = "checkbox";
+      enabled.checked = line.enabled !== false;
+      enabled.title = "是否启用";
+      enabled.addEventListener("change", function (e) {
+        lines[idx].enabled = e.target.checked;
+        saveDialogueDebounced();
+      });
+
       const input = document.createElement("input");
       input.type = "text";
       input.className = "dialogue-input";
-      input.value = line;
-      input.placeholder = "输入台词…";
+      input.value = line.text || "";
+      input.placeholder = "台词…（可用 {balance} {today} {time} {period}）";
       input.addEventListener("input", function (e) {
-        config.dialogue.lines[idx] = e.target.value;
+        lines[idx].text = e.target.value;
         saveDialogueDebounced();
       });
+
+      const tags = document.createElement("input");
+      tags.type = "text";
+      tags.className = "dialogue-tags";
+      tags.value = (line.tags || []).join(",");
+      tags.placeholder = "分类";
+      tags.title = "逗号分隔：daily / greet / peak / offpeak / night / low / rich";
+      tags.addEventListener("input", function (e) {
+        lines[idx].tags = e.target.value
+          .split(",")
+          .map(function (t) {
+            return t.trim();
+          })
+          .filter(function (t) {
+            return t;
+          });
+        saveDialogueDebounced();
+      });
+
+      const weight = document.createElement("input");
+      weight.type = "number";
+      weight.className = "dialogue-weight";
+      weight.min = "1";
+      weight.step = "1";
+      weight.value = String(line.weight || 1);
+      weight.title = "权重（越大越容易被抽中）";
+      weight.addEventListener("input", function (e) {
+        lines[idx].weight = Math.max(1, Math.floor(Number(e.target.value) || 1));
+        saveDialogueDebounced();
+      });
+
       const del = document.createElement("button");
       del.type = "button";
       del.className = "toggle-eye dialogue-del";
       del.textContent = "删除";
       del.addEventListener("click", function () {
-        config.dialogue.lines.splice(idx, 1);
+        lines.splice(idx, 1);
         renderDialogueList();
         saveDialogueDebounced();
       });
+
+      row.appendChild(enabled);
       row.appendChild(input);
+      row.appendChild(tags);
+      row.appendChild(weight);
       row.appendChild(del);
       dialogueListEl.appendChild(row);
+    });
+  }
+
+  // 表情台词字段（与 Rust 侧 MoodLines 对齐）。
+  var MOOD_FIELDS = [
+    { key: "angry", label: "生气" },
+    { key: "shy", label: "害羞" },
+    { key: "disappointed", label: "失落" },
+    { key: "back", label: "回弹" },
+    { key: "lonely", label: "孤独轮播" },
+    { key: "exhausted", label: "疲惫轮播" },
+  ];
+
+  // 渲染表情台词编辑区（每行一条）。
+  function renderMoodLines(moodLines) {
+    MOOD_FIELDS.forEach(function (field) {
+      var el = document.getElementById("mood-" + field.key);
+      if (!el) return;
+      var list =
+        moodLines && Array.isArray(moodLines[field.key]) ? moodLines[field.key] : [];
+      el.value = list.join("\n");
     });
   }
 
@@ -402,7 +498,13 @@
     if (dialogueJitterEl) dialogueJitterEl.value = String(dlg.jitter || 0);
     if (dialogueJitterValEl)
       dialogueJitterValEl.textContent = (dlg.jitter || 0) + "%";
+    if (dialogueContextEl) dialogueContextEl.checked = dlg.contextMode !== false;
+    if (dialogueNoRepeatEl)
+      dialogueNoRepeatEl.value = String(
+        typeof dlg.noRepeat === "number" ? dlg.noRepeat : 3,
+      );
     renderDialogueList();
+    renderMoodLines(dlg.moodLines);
   }
 
   // 展开台词卡片，便于新增/重置后直接继续编辑。
@@ -825,6 +927,42 @@
       dialogueJitterValEl.textContent = v + "%";
       saveDialogueDebounced();
     });
+
+  if (dialogueContextEl)
+    dialogueContextEl.addEventListener("change", function (e) {
+      if (!config || !config.dialogue) return;
+      config.dialogue.contextMode = e.target.checked;
+      saveDialogueDebounced();
+    });
+
+  if (dialogueNoRepeatEl)
+    dialogueNoRepeatEl.addEventListener("input", function (e) {
+      if (!config || !config.dialogue) return;
+      config.dialogue.noRepeat = Math.max(
+        0,
+        Math.floor(Number(e.target.value) || 0),
+      );
+      saveDialogueDebounced();
+    });
+
+  // 表情台词：每个 textarea 一行一条。
+  MOOD_FIELDS.forEach(function (field) {
+    var el = document.getElementById("mood-" + field.key);
+    if (!el) return;
+    el.addEventListener("input", function (e) {
+      if (!config || !config.dialogue) return;
+      if (!config.dialogue.moodLines) config.dialogue.moodLines = {};
+      config.dialogue.moodLines[field.key] = e.target.value
+        .split("\n")
+        .map(function (t) {
+          return t.trim();
+        })
+        .filter(function (t) {
+          return t;
+        });
+      saveDialogueDebounced();
+    });
+  });
 
   if (toggleDialogueEl)
     toggleDialogueEl.addEventListener("click", function () {

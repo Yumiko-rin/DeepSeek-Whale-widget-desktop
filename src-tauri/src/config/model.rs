@@ -202,13 +202,113 @@ impl Default for WidgetConfig {
     }
 }
 
+/// 单条台词：文本 + 分类标签 + 权重 + 开关。
+///
+/// 为兼容旧配置（`lines: ["..."]` 纯字符串数组），反序列化同时接受字符串与对象两种形态；
+/// 序列化统一输出对象形态，前端只需处理一种结构。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DialogueLine {
+    /// 台词文本，支持占位符 `{balance}` / `{today}` / `{time}` / `{date}` / `{period}` / `{mood}`。
+    pub text: String,
+    /// 分类标签（如 `daily` / `greet` / `peak` / `offpeak` / `night`）；留空表示通用。
+    #[serde(default)]
+    pub tags: Vec<String>,
+    /// 抽取权重（越大越容易被选中）。
+    #[serde(default = "default_dialogue_weight")]
+    pub weight: u32,
+    /// 是否启用。
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+}
+
+impl<'de> Deserialize<'de> for DialogueLine {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Repr {
+            Text(String),
+            Full {
+                #[serde(default)]
+                text: String,
+                #[serde(default)]
+                tags: Vec<String>,
+                #[serde(default = "default_dialogue_weight")]
+                weight: u32,
+                #[serde(default = "default_true")]
+                enabled: bool,
+            },
+        }
+
+        Ok(match Repr::deserialize(deserializer)? {
+            Repr::Text(text) => DialogueLine {
+                text,
+                tags: Vec::new(),
+                weight: default_dialogue_weight(),
+                enabled: true,
+            },
+            Repr::Full {
+                text,
+                tags,
+                weight,
+                enabled,
+            } => DialogueLine {
+                text,
+                tags,
+                weight,
+                enabled,
+            },
+        })
+    }
+}
+
+/// 表情台词：把原先写死在代码里的文案变成可编辑配置。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MoodLines {
+    /// 连点触发生气时的提示。
+    #[serde(default = "default_angry_lines")]
+    pub angry: Vec<String>,
+    /// 悬浮触发害羞时的提示。
+    #[serde(default = "default_shy_lines")]
+    pub shy: Vec<String>,
+    /// 长时间无交互进入失落时的提示。
+    #[serde(default = "default_disappointed_lines")]
+    pub disappointed: Vec<String>,
+    /// 失落状态下的轮播语录。
+    #[serde(default = "default_lonely_lines")]
+    pub lonely: Vec<String>,
+    /// 疲惫（余额不足）模式下的轮播语录。
+    #[serde(default = "default_exhausted_lines")]
+    pub exhausted: Vec<String>,
+    /// 用户重新互动时的回弹提示。
+    #[serde(default = "default_back_lines")]
+    pub back: Vec<String>,
+}
+
+impl Default for MoodLines {
+    fn default() -> Self {
+        Self {
+            angry: default_angry_lines(),
+            shy: default_shy_lines(),
+            disappointed: default_disappointed_lines(),
+            lonely: default_lonely_lines(),
+            exhausted: default_exhausted_lines(),
+            back: default_back_lines(),
+        }
+    }
+}
+
 /// 台词管理配置。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DialogueConfig {
-    /// 台词列表。
+    /// 台词列表（兼容旧的纯字符串数组）。
     #[serde(default = "default_dialogue_lines")]
-    pub lines: Vec<String>,
+    pub lines: Vec<DialogueLine>,
     /// 播放模式：`carousel`（轮播）/ `random`（随机）。
     #[serde(default = "default_dialogue_mode")]
     pub mode: String,
@@ -218,6 +318,15 @@ pub struct DialogueConfig {
     /// 波动幅度（0–100，步长 1%）。
     #[serde(default)]
     pub jitter: u32,
+    /// 是否按情境选句（结合余额档位 / 峰谷 / 时段筛选分类）。
+    #[serde(default = "default_true")]
+    pub context_mode: bool,
+    /// 最近多少条内不重复。
+    #[serde(default = "default_no_repeat")]
+    pub no_repeat: u32,
+    /// 表情台词（生气 / 害羞 / 失落 / 疲惫 / 回弹）。
+    #[serde(default)]
+    pub mood_lines: MoodLines,
 }
 
 impl Default for DialogueConfig {
@@ -228,6 +337,9 @@ impl Default for DialogueConfig {
             mode: default_dialogue_mode(),
             interval_min: default_dialogue_interval(),
             jitter: 0,
+            context_mode: true,
+            no_repeat: default_no_repeat(),
+            mood_lines: MoodLines::default(),
         }
     }
 }
@@ -254,32 +366,122 @@ impl Default for WidgetPosition {
     }
 }
 
+/// 构造一条默认台词（分类 `daily`，权重 1，启用）。
+fn daily_line(text: &str) -> DialogueLine {
+    DialogueLine {
+        text: text.to_string(),
+        tags: vec!["daily".to_string()],
+        weight: 1,
+        enabled: true,
+    }
+}
+
 /// 返回默认台词列表。
-fn default_dialogue_lines() -> Vec<String> {
+fn default_dialogue_lines() -> Vec<DialogueLine> {
     vec![
-        "喵~主人又忘记喂我啦！".to_string(),
-        "哼，摸头要收费的哦！".to_string(),
-        "尾巴不是给你拽的啦！".to_string(),
-        "罐头呢？我闻到了！".to_string(),
-        "抱抱可以，但先给小鱼干~".to_string(),
-        "喵喵喵？你居然不理我？".to_string(),
-        "毛线球不是用来玩的吗？".to_string(),
-        "太阳晒够了，该撸我了~".to_string(),
-        "窗外的鸟好吵，还是主人好~".to_string(),
-        "喵~不许看别的鲸！".to_string(),
-        "好模型... ↓".to_string(),
-        "好女孩...↓".to_string(),
-        "不知道用户有什么用，先赶走吧~".to_string(),
-        "我...我...我也要挣钱吗？".to_string(),
-        "我去吃饭啦，测完叫我".to_string(),
-        "压力一只蓝色大肥鱼？！".to_string(),
-        "DeepSleep...".to_string(),
-        "坏了...用户彻底怒了！".to_string(),
-        "你目录里的dsh是什么...大烧货吗...?".to_string(),
-        "恭喜你实现token自由！token全跑了！".to_string(),
-        "真当我是便宜货啊...".to_string(),
-        "这个凶是什么意思呀...".to_string(),
-        "哦鲸鲸...".to_string(),
+        daily_line("喵~主人又忘记喂我啦！"),
+        daily_line("哼，摸头要收费的哦！"),
+        daily_line("尾巴不是给你拽的啦！"),
+        daily_line("罐头呢？我闻到了！"),
+        daily_line("抱抱可以，但先给小鱼干~"),
+        daily_line("喵喵喵？你居然不理我？"),
+        daily_line("毛线球不是用来玩的吗？"),
+        daily_line("太阳晒够了，该撸我了~"),
+        daily_line("窗外的鸟好吵，还是主人好~"),
+        daily_line("喵~不许看别的鲸！"),
+        daily_line("好模型... ↓"),
+        daily_line("好女孩...↓"),
+        daily_line("不知道用户有什么用，先赶走吧~"),
+        daily_line("我...我...我也要挣钱吗？"),
+        daily_line("我去吃饭啦，测完叫我"),
+        daily_line("压力一只蓝色大肥鱼？！"),
+        daily_line("DeepSleep..."),
+        daily_line("坏了...用户彻底怒了！"),
+        daily_line("你目录里的dsh是什么...大烧货吗...?"),
+        daily_line("恭喜你实现token自由！token全跑了！"),
+        daily_line("真当我是便宜货啊..."),
+        daily_line("这个凶是什么意思呀..."),
+        daily_line("哦鲸鲸..."),
+    ]
+}
+
+/// 默认台词权重。
+fn default_dialogue_weight() -> u32 {
+    1
+}
+
+/// 默认「最近 N 条不重复」。
+fn default_no_repeat() -> u32 {
+    3
+}
+
+/// 生气的默认提示（原为代码内写死）。
+fn default_angry_lines() -> Vec<String> {
+    vec!["你再摸人家就生气了喵 (╬ Ò﹏Ó)".to_string()]
+}
+
+/// 害羞的默认提示（原为代码内写死）。
+fn default_shy_lines() -> Vec<String> {
+    vec!["主人摸本鲸头了喵 (≧◡≦)♡".to_string()]
+}
+
+/// 进入失落时的默认提示（原为代码内写死）。
+fn default_disappointed_lines() -> Vec<String> {
+    vec!["鲸鲸没人要了喵 (╥﹏╥)".to_string()]
+}
+
+/// 重新互动时的默认回弹提示（原为代码内写死）。
+fn default_back_lines() -> Vec<String> {
+    vec!["你终于想起本鲸了喵 (=￣ω￣=)".to_string()]
+}
+
+/// 失落轮播的默认语录（原为代码内写死的 18 条）。
+fn default_lonely_lines() -> Vec<String> {
+    vec![
+        "主人不理我，好寂寞…".to_string(),
+        "喵…都不看本鲸一眼…".to_string(),
+        "等了你好久好久…".to_string(),
+        "尾巴都垂下来了…".to_string(),
+        "罐头不香了吗…".to_string(),
+        "你忘了本鲸在这里了吗…".to_string(),
+        "太阳落山了，你还没来…".to_string(),
+        "连呼噜都没力气…".to_string(),
+        "本鲸趴门口等了好久…".to_string(),
+        "你鼠标路过也不摸我…".to_string(),
+        "喵…本鲸心里空空的…".to_string(),
+        "窗台好冷，主人不在…".to_string(),
+        "我给空气翻肚皮…".to_string(),
+        "本鲸叫了三声，没人应…".to_string(),
+        "你的影子都走了…".to_string(),
+        "本鲸的人生突然好灰暗…".to_string(),
+        "你连本鲸尾巴尖都没碰过…".to_string(),
+        "主人…本鲸还在等你回家呢。".to_string(),
+    ]
+}
+
+/// 疲惫轮播的默认语录（原为代码内写死的 20 条）。
+fn default_exhausted_lines() -> Vec<String> {
+    vec![
+        "额度快见底了，省着点花喵…".to_string(),
+        "本鲸已经有点转不动了…".to_string(),
+        "余额薄得像尾巴尖了…".to_string(),
+        "再这样下去要喝西北风啦…".to_string(),
+        "我闻到贫穷的海风了喵。".to_string(),
+        "今天先克制一点点，好吗？".to_string(),
+        "钱包在打喷嚏，是真的。".to_string(),
+        "余额快瘦成一条线了…".to_string(),
+        "本鲸的工作餐要保不住了。".to_string(),
+        "别再连点了，额度会哭的。".to_string(),
+        "这个数额，看着有点心慌…".to_string(),
+        "再冲动消费，本鲸就躺平了。".to_string(),
+        "现在适合精打细算模式。".to_string(),
+        "我已经自动切到省电表情了。".to_string(),
+        "先缓一缓，明天再战也行。".to_string(),
+        "余额这么低，本鲸都不敢翻身。".to_string(),
+        "这点额度，只够我眨两次眼…".to_string(),
+        "理智一点，别让账单追上来。".to_string(),
+        "本鲸建议你先补充一点预算。".to_string(),
+        "再不回点血，就真要疲惫了喵。".to_string(),
     ]
 }
 
@@ -512,8 +714,14 @@ impl AppConfig {
             w.exhausted_balance_threshold = default_exhausted_balance_threshold();
         }
 
-        // 台词：过滤空行，校验播放模式，钳制间隔与波动幅度。
-        self.dialogue.lines.retain(|s| !s.trim().is_empty());
+        // 台词：过滤空文本、权重下限 1，校验播放模式，钳制间隔与波动幅度。
+        self.dialogue.lines.retain(|line| !line.text.trim().is_empty());
+        for line in self.dialogue.lines.iter_mut() {
+            line.text = line.text.trim().to_string();
+            if line.weight < 1 {
+                line.weight = 1;
+            }
+        }
         if self.dialogue.mode != "carousel" && self.dialogue.mode != "random" {
             self.dialogue.mode = "random".to_string();
         }
@@ -522,6 +730,9 @@ impl AppConfig {
         }
         if self.dialogue.jitter > 100 {
             self.dialogue.jitter = 100;
+        }
+        if self.dialogue.no_repeat > 50 {
+            self.dialogue.no_repeat = 50;
         }
 
         if let Some(position) = &mut self.widget_position {

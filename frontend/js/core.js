@@ -160,6 +160,11 @@ window.DSW = window.DSW || {};
     dialogueMode: "random",
     dialogueIntervalMin: 5,
     dialogueJitter: 0,
+    // 台词增强：按情境选句 / 最近 N 条不重复 / 可编辑的表情台词。
+    dialogueContextMode: true,
+    dialogueNoRepeat: 3,
+    recentLines: [],
+    moodLines: null,
     dialogueIndex: 0,
     dialogueTimer: null,
     lastWhaleClickAt: 0,

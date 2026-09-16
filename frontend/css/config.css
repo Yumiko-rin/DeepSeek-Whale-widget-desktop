@@ -303,3 +303,26 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   background: #fff;
 }
 #profileSelect { width: 100%; }
+
+/* 台词增强：分类 / 权重 / 表情台词编辑 */
+.dialogue-legend { color: var(--muted); font-size: 11px; line-height: 1.6; margin: 4px 2px 8px; }
+.dialogue-tags { width: 96px; flex: 0 0 auto; }
+.dialogue-weight { width: 56px; flex: 0 0 auto; }
+.dialogue-row input[type="checkbox"] { flex: 0 0 auto; margin-right: 2px; }
+.mood-lines { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px; }
+.mood-title { color: var(--text); font-size: 12px; margin-bottom: 6px; }
+.mood-field { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+.mood-field > span { width: 64px; flex: 0 0 auto; color: var(--muted); font-size: 12px; padding-top: 6px; }
+.mood-field textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+  resize: vertical;
+}

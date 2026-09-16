@@ -214,6 +214,22 @@
           </div>
           <div class="dialogue-body" id="dialogueBody">
             <div id="dialogueList" class="dialogue-list"></div>
+            <div class="dialogue-legend">
+              每行＝一条台词：文本 · 分类（逗号分隔：daily / greet / peak / offpeak / night / low / rich） · 权重 · 启用。
+              文本里可用占位符 {balance} {today} {time} {date} {period} {mood}。
+            </div>
+            <div class="sys-row">
+              <div class="sys-title">按情境选句（结合峰谷 / 时段 / 余额分类）</div>
+              <label class="switch">
+                <input id="dialogueContext" type="checkbox" />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <label class="field">
+              <span class="field-label short">不重复条数</span>
+              <input id="dialogueNoRepeat" type="number" min="0" step="1" />
+              <span class="ctx-unit">条</span>
+            </label>
             <label class="field">
               <span class="field-label short">播放模式</span>
               <select id="dialogueMode">
@@ -231,6 +247,16 @@
               <input id="dialogueJitter" type="range" min="0" max="100" step="1" />
               <span id="dialogueJitterVal" class="scale-val">0%</span>
             </label>
+
+            <div class="mood-lines">
+              <div class="mood-title">表情台词（每行一条，可编辑）</div>
+              <label class="mood-field"><span>生气</span><textarea id="mood-angry" rows="2"></textarea></label>
+              <label class="mood-field"><span>害羞</span><textarea id="mood-shy" rows="2"></textarea></label>
+              <label class="mood-field"><span>失落</span><textarea id="mood-disappointed" rows="2"></textarea></label>
+              <label class="mood-field"><span>回弹</span><textarea id="mood-back" rows="2"></textarea></label>
+              <label class="mood-field"><span>孤独轮播</span><textarea id="mood-lonely" rows="4"></textarea></label>
+              <label class="mood-field"><span>疲惫轮播</span><textarea id="mood-exhausted" rows="4"></textarea></label>
+            </div>
           </div>
         </section>
 
