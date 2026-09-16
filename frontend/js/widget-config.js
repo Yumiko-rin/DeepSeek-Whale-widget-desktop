@@ -215,7 +215,7 @@ window.DSW = window.DSW || {};
     });
   }
 
-  // 当前情境标签，供「按情境选句」筛选分类。
+  // 当前情境标签，供「按情境选句」筛选与加权。
   function contextTags() {
     var tags = [state.isPeak ? "peak" : "offpeak"];
     var hour = new Date().getHours();
@@ -228,28 +228,42 @@ window.DSW = window.DSW || {};
     return tags;
   }
 
-  // 按权重抽一条。
+  // 通用分类：任何情境都可出现，不会被情境筛选剔除。
+  var UNIVERSAL_TAGS = ["daily", "greet"];
+
+  // 按权重抽一条（使用带情境加成的权重）。
   function pickWeighted(pool) {
     if (!pool.length) return null;
     var total = 0;
     pool.forEach(function (line) {
-      total += Math.max(1, line.weight || 1);
+      total += lineWeight(line);
     });
     var roll = Math.random() * total;
     for (var i = 0; i < pool.length; i++) {
-      roll -= Math.max(1, pool[i].weight || 1);
+      roll -= lineWeight(pool[i]);
       if (roll <= 0) return pool[i];
     }
     return pool[pool.length - 1];
   }
 
-  // 可用台词池：按情境筛分类；若一个都没命中则回落到全部启用台词。
+  // 命中当前情境的分类获得权重加成，让「深夜 / 谷价 / 余额低」这类台词更容易出现。
+  function lineWeight(line) {
+    var base = Math.max(1, line.weight || 1);
+    if (!flags.dialogueContextMode || !line.tags || !line.tags.length) return base;
+    var situation = contextTags();
+    var hit = line.tags.some(function (t) {
+      return situation.indexOf(t) !== -1;
+    });
+    return hit ? base * 3 : base;
+  }
+
+  // 可用台词池：未分类，或命中「情境 ∪ 通用」分类的启用台词。
   function availableLines() {
     var enabled = flags.dialogueLines.filter(function (line) {
       return line.enabled !== false;
     });
     if (!flags.dialogueContextMode) return enabled;
-    var tags = contextTags();
+    var tags = contextTags().concat(UNIVERSAL_TAGS);
     var matched = enabled.filter(function (line) {
       if (!line.tags || !line.tags.length) return true; // 未分类＝通用
       return line.tags.some(function (t) {

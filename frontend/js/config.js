@@ -890,14 +890,25 @@
       if (inputs.length) inputs[inputs.length - 1].focus();
     });
 
-  // 一键恢复默认台词集合。
+  // 一键恢复默认台词集合（默认文案以 Rust 侧为唯一数据源）。
   if (resetLinesEl)
     resetLinesEl.addEventListener("click", function () {
-      if (!config || !config.dialogue) return;
+      if (!config) return;
       expandDialogue();
-      config.dialogue.lines = DEFAULT_LINES.slice();
-      renderDialogueList();
-      saveDialogueDebounced();
+      invoke("reset_dialogue")
+        .then(function (dlg) {
+          applyDialogueToUi(dlg);
+          saveDialogueDebounced();
+          showTip("已恢复默认台词（含分类与表情台词）");
+        })
+        .catch(function (err) {
+          console.error("恢复默认台词失败", err);
+          // 兜底：用界面内置列表，至少不让按钮失效。
+          if (!config.dialogue) return;
+          config.dialogue.lines = DEFAULT_LINES.slice();
+          renderDialogueList();
+          saveDialogueDebounced();
+        });
     });
 
   if (dialogueModeEl)

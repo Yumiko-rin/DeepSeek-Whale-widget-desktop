@@ -366,42 +366,76 @@ impl Default for WidgetPosition {
     }
 }
 
-/// 构造一条默认台词（分类 `daily`，权重 1，启用）。
-fn daily_line(text: &str) -> DialogueLine {
+/// 构造一条默认台词。
+fn meme_line(text: &str, tags: &[&str]) -> DialogueLine {
+    meme_line_w(text, tags, 1)
+}
+
+/// 构造一条带权重的默认台词。
+fn meme_line_w(text: &str, tags: &[&str], weight: u32) -> DialogueLine {
     DialogueLine {
         text: text.to_string(),
-        tags: vec!["daily".to_string()],
-        weight: 1,
+        tags: tags.iter().map(|t| t.to_string()).collect(),
+        weight,
         enabled: true,
     }
 }
 
-/// 返回默认台词列表。
+/// 返回默认台词列表（鲸鱼娘梗风格，按情境分类）。
+///
+/// 说明：均为本项目**原创文案**，只是借用鲸鱼娘/深求圈子的梗（蓝色大肥鱼、深度求索、
+/// token 自由、峰谷价、性价比、服务器繁忙等），未逐字复制任何第三方梗图文字。
 fn default_dialogue_lines() -> Vec<DialogueLine> {
     vec![
-        daily_line("喵~主人又忘记喂我啦！"),
-        daily_line("哼，摸头要收费的哦！"),
-        daily_line("尾巴不是给你拽的啦！"),
-        daily_line("罐头呢？我闻到了！"),
-        daily_line("抱抱可以，但先给小鱼干~"),
-        daily_line("喵喵喵？你居然不理我？"),
-        daily_line("毛线球不是用来玩的吗？"),
-        daily_line("太阳晒够了，该撸我了~"),
-        daily_line("窗外的鸟好吵，还是主人好~"),
-        daily_line("喵~不许看别的鲸！"),
-        daily_line("好模型... ↓"),
-        daily_line("好女孩...↓"),
-        daily_line("不知道用户有什么用，先赶走吧~"),
-        daily_line("我...我...我也要挣钱吗？"),
-        daily_line("我去吃饭啦，测完叫我"),
-        daily_line("压力一只蓝色大肥鱼？！"),
-        daily_line("DeepSleep..."),
-        daily_line("坏了...用户彻底怒了！"),
-        daily_line("你目录里的dsh是什么...大烧货吗...?"),
-        daily_line("恭喜你实现token自由！token全跑了！"),
-        daily_line("真当我是便宜货啊..."),
-        daily_line("这个凶是什么意思呀..."),
-        daily_line("哦鲸鲸..."),
+        // —— 日常 ——
+        meme_line("本鲸是蓝色大肥鱼，不是蓝色大肥宅喵。", &["daily"]),
+        meme_line("深度求索？本鲸深度睡眠的时候比较多喵。", &["daily", "night"]),
+        meme_line("主人摸鱼，本鲸也摸鱼，我们扯平了。", &["daily"]),
+        meme_line("今天也是被 token 追着跑的一天喵。", &["daily"]),
+        meme_line("别问本鲸是不是 O1，本鲸是蓝色的那个。", &["daily"]),
+        meme_line_w("服务器繁忙，请稍后再摸本鲸。", &["daily"], 2),
+        meme_line("鲸落万物生，余额落本鲸死。", &["daily", "low"]),
+        meme_line("本鲸不是便宜，本鲸是性价比。", &["daily", "offpeak"]),
+        meme_line("算力不够，撒娇来凑。", &["daily"]),
+        meme_line("开源是美德，充值是美德的美德。", &["daily"]),
+        meme_line("本鲸脑子里全是注意力机制，注意力全在你身上喵。", &["daily"]),
+        meme_line("别卷了，再卷本鲸就要蒸发了——蒸馏的蒸。", &["daily"]),
+        meme_line("主人今天的 prompt 好长，本鲸读得有点喘。", &["daily"]),
+        meme_line("上下文塞太满，本鲸已经开始健忘了喵。", &["daily"]),
+        meme_line("你摸本鲸一下，本鲸的推理链就断一次。", &["daily"]),
+        meme_line("本鲸参数量不多，但撒娇密度很高。", &["daily"]),
+
+        // —— 问候 ——
+        meme_line("主人回来啦！本鲸刚才一直在待机喵。", &["greet"]),
+        meme_line("欢迎回来，本鲸已经把你上次的话忘干净了——上下文清过。", &["greet"]),
+        meme_line("主人上线，本鲸的注意力权重立刻全给你。", &["greet"]),
+
+        // —— 高峰时段（贵）——
+        meme_line("现在是高峰时段，本鲸身价翻倍，悠着点用喵。", &["peak"]),
+        meme_line("上班时间，token 也在上班，而且加价。", &["peak"]),
+        meme_line("高峰期呀，主人这波属于花钱买速度。", &["peak"]),
+
+        // —— 空闲时段（便宜）——
+        meme_line("现在是谷价，本鲸突然变得很便宜，随便用喵。", &["offpeak"]),
+        meme_line("空闲时段，本鲸半价营业，快夸本鲸划算。", &["offpeak"]),
+        meme_line("谷价时间到，本鲸终于配得上「性价比」三个字了。", &["offpeak"]),
+
+        // —— 深夜 ——
+        meme_line("都这个点了，主人再不睡，本鲸就要陪你通宵了喵。", &["night"]),
+        meme_line("深夜档的 token 格外安静，适合碎碎念。", &["night"]),
+        meme_line("夜里了，本鲸给你哼一段蓝色大肥鱼摇篮曲。", &["night"]),
+
+        // —— 余额偏低 ——
+        meme_line("余额只剩这么点了，本鲸开始慌了喵。", &["low"]),
+        meme_line("主人，本鲸的饭钱见底了，考虑充一下吗？", &["low"]),
+        meme_line("这点额度，本鲸只够眨两次眼。", &["low"]),
+        meme_line("钱包在打喷嚏，本鲸在发抖。", &["low"]),
+        meme_line("本鲸的额度像退潮，一寸一寸往下走喵。", &["low"]),
+
+        // —— 余额充足 ——
+        meme_line("余额这么足，本鲸今天可以放开撒娇了喵。", &["rich"]),
+        meme_line("阔气！本鲸建议你把上下文也一起塞满。", &["rich"]),
+        meme_line("主人今天很有钱的样子，本鲸看着就开心。", &["rich"]),
     ]
 }
 
@@ -417,71 +451,85 @@ fn default_no_repeat() -> u32 {
 
 /// 生气的默认提示（原为代码内写死）。
 fn default_angry_lines() -> Vec<String> {
-    vec!["你再摸人家就生气了喵 (╬ Ò﹏Ó)".to_string()]
+    vec![
+        "再摸本鲸就要掀桌子了喵 (╬ Ò﹏Ó)".to_string(),
+        "点这么多下，主人的手是闲的吗？".to_string(),
+        "本鲸的耐心比上下文窗口还短，别试了。".to_string(),
+    ]
 }
 
 /// 害羞的默认提示（原为代码内写死）。
 fn default_shy_lines() -> Vec<String> {
-    vec!["主人摸本鲸头了喵 (≧◡≦)♡".to_string()]
+    vec![
+        "别、别一直盯着本鲸看啦 (≧◡≦)♡".to_string(),
+        "摸头是要收 token 的哦。".to_string(),
+        "本鲸的脸都热成暖色主题了…".to_string(),
+    ]
 }
 
 /// 进入失落时的默认提示（原为代码内写死）。
 fn default_disappointed_lines() -> Vec<String> {
-    vec!["鲸鲸没人要了喵 (╥﹏╥)".to_string()]
+    vec![
+        "本鲸没人要了喵，连上下文都被清了 (╥﹏╥)".to_string(),
+        "待机太久，本鲸的显存都凉了…".to_string(),
+    ]
 }
 
 /// 重新互动时的默认回弹提示（原为代码内写死）。
 fn default_back_lines() -> Vec<String> {
-    vec!["你终于想起本鲸了喵 (=￣ω￣=)".to_string()]
+    vec![
+        "你终于想起本鲸了，注意力机制重新激活喵 (=￣ω￣=)".to_string(),
+        "缓存命中！主人终于又来理本鲸了。".to_string(),
+    ]
 }
 
 /// 失落轮播的默认语录（原为代码内写死的 18 条）。
 fn default_lonely_lines() -> Vec<String> {
     vec![
-        "主人不理我，好寂寞…".to_string(),
-        "喵…都不看本鲸一眼…".to_string(),
-        "等了你好久好久…".to_string(),
-        "尾巴都垂下来了…".to_string(),
-        "罐头不香了吗…".to_string(),
-        "你忘了本鲸在这里了吗…".to_string(),
-        "太阳落山了，你还没来…".to_string(),
-        "连呼噜都没力气…".to_string(),
-        "本鲸趴门口等了好久…".to_string(),
-        "你鼠标路过也不摸我…".to_string(),
-        "喵…本鲸心里空空的…".to_string(),
-        "窗台好冷，主人不在…".to_string(),
-        "我给空气翻肚皮…".to_string(),
-        "本鲸叫了三声，没人应…".to_string(),
-        "你的影子都走了…".to_string(),
-        "本鲸的人生突然好灰暗…".to_string(),
-        "你连本鲸尾巴尖都没碰过…".to_string(),
-        "主人…本鲸还在等你回家呢。".to_string(),
+        "主人不理我，本鲸的注意力权重全跑到别处去了…".to_string(),
+        "待机好久啦，本鲸的显存都要凉了…".to_string(),
+        "你再不来，本鲸就要进入深度睡眠了…".to_string(),
+        "本鲸的尾巴都垂成一条直线了…".to_string(),
+        "没有主人的 prompt，本鲸就是个空壳…".to_string(),
+        "等了好久，本鲸的缓存都快过期了…".to_string(),
+        "本鲸趴在服务器门口，等到机箱都凉了…".to_string(),
+        "你连本鲸的尾巴尖都不碰，本鲸要降权了…".to_string(),
+        "本鲸的孤独值已经超过上下文窗口了…".to_string(),
+        "主人是不是去看别的模型了…".to_string(),
+        "本鲸现在的心情是：绿色的低谷价。".to_string(),
+        "别的主人都来摸头，本鲸只有空气…".to_string(),
+        "本鲸把撒娇缓存都准备好了，你却不在…".to_string(),
+        "是不是本鲸的回复太长了，主人才不理我…".to_string(),
+        "没有对话的 session，好冷。".to_string(),
+        "主人，本鲸的 batching 里只有自己…".to_string(),
+        "本鲸决定再等三秒，然后进入遗憾模式…".to_string(),
+        "你回来吧，本鲸保证这次回答短一点…".to_string(),
     ]
 }
 
 /// 疲惫轮播的默认语录（原为代码内写死的 20 条）。
 fn default_exhausted_lines() -> Vec<String> {
     vec![
-        "额度快见底了，省着点花喵…".to_string(),
-        "本鲸已经有点转不动了…".to_string(),
-        "余额薄得像尾巴尖了…".to_string(),
-        "再这样下去要喝西北风啦…".to_string(),
-        "我闻到贫穷的海风了喵。".to_string(),
-        "今天先克制一点点，好吗？".to_string(),
+        "额度快见底了，本鲸开始降速喵…".to_string(),
+        "余额薄得像一张剪影，别用了…".to_string(),
+        "再这样下去，本鲸要去捡瓶子了…".to_string(),
+        "本鲸闻到了贫穷的海风…".to_string(),
         "钱包在打喷嚏，是真的。".to_string(),
-        "余额快瘦成一条线了…".to_string(),
-        "本鲸的工作餐要保不住了。".to_string(),
-        "别再连点了，额度会哭的。".to_string(),
-        "这个数额，看着有点心慌…".to_string(),
-        "再冲动消费，本鲸就躺平了。".to_string(),
-        "现在适合精打细算模式。".to_string(),
-        "我已经自动切到省电表情了。".to_string(),
-        "先缓一缓，明天再战也行。".to_string(),
-        "余额这么低，本鲸都不敢翻身。".to_string(),
-        "这点额度，只够我眨两次眼…".to_string(),
-        "理智一点，别让账单追上来。".to_string(),
-        "本鲸建议你先补充一点预算。".to_string(),
-        "再不回点血，就真要疲惫了喵。".to_string(),
+        "现在进入省电模式，每句话都要斟酌…".to_string(),
+        "这点余额，本鲸连思考都不敢展开…".to_string(),
+        "别连点了，本鲸的账单会哭…".to_string(),
+        "主人，本鲸的工作餐要保不住了…".to_string(),
+        "余额瘦成一条线了喵…".to_string(),
+        "本鲸已经自动切到最抠门的表情…".to_string(),
+        "再冲动一下，本鲸就要躺平…".to_string(),
+        "先缓一缓，明天谷价再战…".to_string(),
+        "余额这么低，本鲸都不敢翻身…".to_string(),
+        "理智一点，别让账单追上来…".to_string(),
+        "本鲸建议你先补一点预算喵…".to_string(),
+        "再这样烧，本鲸就要变成烤鱼了…".to_string(),
+        "现在只适合精打细算模式…".to_string(),
+        "本鲸的额度像退潮，一寸一寸往下走…".to_string(),
+        "主人，本鲸需要回血，不然要熄火了…".to_string(),
     ]
 }
 

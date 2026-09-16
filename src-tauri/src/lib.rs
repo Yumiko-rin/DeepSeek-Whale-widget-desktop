@@ -57,6 +57,7 @@ pub fn run() {
             crate::controller::config::save_config,
             crate::controller::config::save_widget_config,
             crate::controller::config::save_dialogue,
+            crate::controller::config::reset_dialogue,
             crate::controller::config::apply_profile,
             crate::controller::config::save_profile,
             crate::controller::config::delete_profile,

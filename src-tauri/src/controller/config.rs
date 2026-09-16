@@ -143,6 +143,15 @@ pub fn delete_profile(_app: AppHandle, id: String) -> Result<AppConfig, String> 
     crate::config::update_config(cfg)
 }
 
+/// 恢复默认台词配置（含分类与表情台词）。
+///
+/// 默认文案的唯一数据源在 Rust 侧，设置界面的「恢复默认台词」直接调用本命令，
+/// 避免前后端各维护一份文案而逐渐漂移。
+#[tauri::command]
+pub fn reset_dialogue() -> DialogueConfig {
+    DialogueConfig::default()
+}
+
 /// 快速保存挂件显示配置（汉堡菜单实时调整时使用）。
 #[tauri::command]
 pub fn save_widget_config(app: AppHandle, widget: WidgetConfig) -> Result<WidgetConfig, String> {
