@@ -10,15 +10,43 @@ pub async fn check_update() -> Result<UpdateCheckResult, String> {
     crate::service::update::check_update_version().await
 }
 
-/// 用系统默认浏览器打开外部链接（Windows 下经 explorer 打开，规避 shell 特殊字符问题）。
+/// 用系统默认浏览器打开外部链接。
 #[tauri::command]
 pub fn open_external(url: String) -> Result<(), String> {
     if url.trim().is_empty() {
         return Err("链接为空".to_string());
     }
-    std::process::Command::new("explorer")
-        .arg(&url)
-        .spawn()
-        .map_err(|e| format!("打开浏览器失败: {}", e))?;
-    Ok(())
+    open_in_browser(&url)
+}
+
+/// 按平台调用系统默认浏览器。
+///
+/// 原先硬编码 `explorer`（仅 Windows 存在），导致 macOS / Linux 上「检查更新」「使用教程」
+/// 两个按钮点了没反应；这里按平台分派。
+fn open_in_browser(url: &str) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    let mut cmd = {
+        let mut c = std::process::Command::new("cmd");
+        // `start` 是 cmd 的内建命令；第一个参数当窗口标题，留空才不会把 URL 当标题。
+        c.args(["/C", "start", "", url]);
+        c
+    };
+
+    #[cfg(target_os = "macos")]
+    let mut cmd = {
+        let mut c = std::process::Command::new("open");
+        c.arg(url);
+        c
+    };
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut cmd = {
+        let mut c = std::process::Command::new("xdg-open");
+        c.arg(url);
+        c
+    };
+
+    cmd.spawn()
+        .map(|_| ())
+        .map_err(|e| format!("打开浏览器失败: {}", e))
 }
