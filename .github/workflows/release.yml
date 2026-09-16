@@ -89,6 +89,7 @@ jobs:
             | 系统 | 文件 |
             | --- | --- |
             | Windows x64 | `*_x64-setup.exe`（NSIS 安装包，当前用户安装，免管理员） |
+            | Windows x64 便携版 | `*_x64-portable.exe`（免安装，双击即用） |
             | macOS Apple Silicon | `*_aarch64.dmg` / `*.app` |
             | macOS Intel | `*_x64.dmg` / `*.app` |
             | Linux x64 | `*.deb` / `*.AppImage` |
@@ -100,3 +101,15 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      # Windows 额外提供一个免安装的便携版 exe（Tauri 的 nsis 目标只产出安装包）。
+      - name: Upload Windows portable exe
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          gh release upload "v$VERSION" \
+            "src-tauri/target/release/DS Desktop Whale.exe#DS.Desktop.Whale_${VERSION}_x64-portable.exe" \
+            --clobber
