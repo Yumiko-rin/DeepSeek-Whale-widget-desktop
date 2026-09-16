@@ -151,6 +151,9 @@ window.DSW = window.DSW || {};
     soundVol: 0.9,
     soundSet: "duck",
     eventSounds: true,
+    // 动作动效（自有素材合成）与随机小动作彩蛋。
+    actions: true,
+    randomActions: true,
     bubbleColor: "#203170",
     customSounds: [],
     dialogueLines: [],

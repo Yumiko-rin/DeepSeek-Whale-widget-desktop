@@ -97,6 +97,12 @@ pub struct WidgetConfig {
     /// 这里落到本挂件真正拥有的事件上（余额变化、请求失败）。
     #[serde(default = "default_event_sounds")]
     pub event_sounds: bool,
+    /// 是否启用动作动效（跳/转圈/点头/受惊/呼吸/摇摆等，全部由现有素材合成）。
+    #[serde(default = "default_actions")]
+    pub actions: bool,
+    /// 是否启用随机小动作彩蛋（闲暇时偶尔来一个）。
+    #[serde(default = "default_random_actions")]
+    pub random_actions: bool,
 }
 
 impl Default for WidgetConfig {
@@ -114,6 +120,8 @@ impl Default for WidgetConfig {
             exhausted_mode_enabled: true,
             exhausted_balance_threshold: 5.0,
             event_sounds: true,
+            actions: true,
+            random_actions: true,
         }
     }
 }
@@ -282,6 +290,16 @@ fn default_exhausted_balance_threshold() -> f64 {
 
 /// 事件音效默认开启（旧配置无此字段时保持原有行为：有声音）。
 fn default_event_sounds() -> bool {
+    true
+}
+
+/// 动作动效默认开启（旧配置无此字段时按开启处理）。
+fn default_actions() -> bool {
+    true
+}
+
+/// 随机小动作彩蛋默认开启。
+fn default_random_actions() -> bool {
     true
 }
 

@@ -40,6 +40,8 @@ window.DSW = window.DSW || {};
       moved: false,
     };
     DSW.dom.root.classList.add("dshwv-dragging");
+    // 拖拽期间摇摆（自有素材合成动效）。
+    if (DSW.actions) DSW.actions.dragLoop(true);
 
     if (flags.mood === "disappointed") {
       DSW.expression.setIcon(C.IMG_URL_PRESS);
@@ -114,6 +116,8 @@ window.DSW = window.DSW || {};
     document.removeEventListener("pointercancel", onDocPointerCancel, true);
     document.removeEventListener("click", onDocClickStopper, true);
     DSW.dom.root.classList.remove("dshwv-dragging");
+    // 松手落地回弹，并恢复到待机呼吸。
+    if (DSW.actions) DSW.actions.dragLoop(false);
 
     if (flags.mood === "disappointed") {
       if (flags.drag.moved) snapAfterDrag();

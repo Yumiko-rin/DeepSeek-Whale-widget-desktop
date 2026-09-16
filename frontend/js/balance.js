@@ -121,8 +121,9 @@ window.DSW = window.DSW || {};
           }
           // 自动轮询下若余额变化，先展示气泡再执行数字滚动。
           if (changed && !currencyChanged) {
-            // 余额确实变了：给一声事件提示音（与按压音相互独立）。
+            // 余额确实变了：给一声事件提示音（与按压音相互独立）+ 跳一下。
             if (DSW.audio && DSW.audio.playEvent) DSW.audio.playEvent("done");
+            if (DSW.actions) DSW.actions.play("hop");
             if (!manual) {
               DSW.bubble.showBubble();
               state.status = "changing";
@@ -156,6 +157,8 @@ window.DSW = window.DSW || {};
           if (manual && DSW.audio && DSW.audio.playEvent) {
             DSW.audio.playEvent("error");
           }
+          // 刷新失败：受惊摇晃一下。
+          if (DSW.actions) DSW.actions.play("wobble");
           render();
         }
       })

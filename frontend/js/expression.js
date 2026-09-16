@@ -55,21 +55,34 @@ window.DSW = window.DSW || {};
     if (!DSW.dom || !DSW.dom.img) return;
     if (flags.mood === "angry") {
       setIcon(C.IMG_ANGRY);
-      return;
-    }
-    if (flags.mood === "disappointed") {
+    } else if (flags.mood === "disappointed") {
       setIcon(C.IMG_DISAPPOINTED);
-      return;
-    }
-    if (flags.mood === "shy") {
+    } else if (flags.mood === "shy") {
       setIcon(C.IMG_SHY);
-      return;
-    }
-    if (flags.pressing) {
+    } else if (flags.pressing) {
       setIcon(getPressIcon());
+    } else {
+      setIcon(getBaseIcon());
+    }
+    syncActions();
+  }
+
+  // 动效与静态表情同步：生气抖动、疲惫下沉，其余待机呼吸。
+  function syncActions() {
+    if (!DSW.actions || !DSW.actions.isEnabled()) return;
+    if (flags.pressing) return; // 按压期间交给 Q 弹变形，避免两套变换打架
+    DSW.actions.syncMoodLoop(flags.mood, flags.exhaustedMode);
+  }
+
+  // 点击反馈：单击跳一下（pop 音），双击（进入时间气泡）转个圈（whoosh 音）。
+  function clickFeedback(double) {
+    if (double) {
+      if (DSW.actions) DSW.actions.play("spin");
+      if (DSW.audio && DSW.audio.playSynth) DSW.audio.playSynth("whoosh");
       return;
     }
-    setIcon(getBaseIcon());
+    if (DSW.actions) DSW.actions.play("hop");
+    if (DSW.audio && DSW.audio.playSynth) DSW.audio.playSynth("pop");
   }
 
   function clearBlinkTimers() {
@@ -395,6 +408,7 @@ window.DSW = window.DSW || {};
     DSW.balance.refresh(true);
     flags.lastWhaleClickAt = now;
     flags.whaleClickStep = 1;
+    clickFeedback(false);
   }
 
   // 处理鲸鱼本体点击（连点检测 + 主状态点击序列）。
@@ -468,6 +482,7 @@ window.DSW = window.DSW || {};
 
     DSW.bubble.showTimeBubble();
     resetWhaleClickSequence();
+    clickFeedback(true);
   }
 
   DSW.expression = {

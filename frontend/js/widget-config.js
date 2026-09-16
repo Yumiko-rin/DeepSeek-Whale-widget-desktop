@@ -136,6 +136,10 @@ window.DSW = window.DSW || {};
     flags.soundOn = w.sound !== false;
     // 事件音效总开关（缺省开启，兼容旧配置）。
     flags.eventSounds = w.eventSounds !== false;
+    // 动作动效与随机小动作（缺省开启）。
+    flags.actions = w.actions !== false;
+    flags.randomActions = w.randomActions !== false;
+    if (DSW.actions) DSW.actions.setEnabled(flags.actions);
     applyBlinkConfig(w.blinkIntervalMinSec, w.blinkIntervalMaxSec);
     applyExhaustedConfig(w.exhaustedModeEnabled, w.exhaustedBalanceThreshold);
     if (DSW.expression && DSW.expression.handleWidgetConfigChange) {
@@ -159,6 +163,8 @@ window.DSW = window.DSW || {};
         exhaustedModeEnabled: flags.exhaustedModeEnabled,
         exhaustedBalanceThreshold: flags.exhaustedBalanceThreshold,
         eventSounds: flags.eventSounds,
+        actions: flags.actions,
+        randomActions: flags.randomActions,
       },
     }).catch(function () {});
   }

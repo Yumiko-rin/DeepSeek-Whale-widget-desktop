@@ -28,6 +28,8 @@
   const widgetVolEl = document.getElementById("widgetVol");
   const widgetVolPctEl = document.getElementById("widgetVolPct");
   const eventSoundsEl = document.getElementById("eventSounds");
+  const actionsEl = document.getElementById("actions");
+  const randomActionsEl = document.getElementById("randomActions");
   const blinkIntervalMinSecEl = document.getElementById("blinkIntervalMinSec");
   const blinkIntervalMaxSecEl = document.getElementById("blinkIntervalMaxSec");
   const exhaustedModeEnabledEl = document.getElementById(
@@ -260,6 +262,8 @@
     widgetScaleValEl.textContent = String(level);
     restoreSoundOptions(w);
     if (eventSoundsEl) eventSoundsEl.checked = w.eventSounds !== false;
+    if (actionsEl) actionsEl.checked = w.actions !== false;
+    if (randomActionsEl) randomActionsEl.checked = w.randomActions !== false;
     const hue = hueFromHex(w.bubbleColor || "#203170");
     bubbleColorEl.value = String(hue);
     const vol = typeof w.vol === "number" ? w.vol : 0.9;
@@ -505,6 +509,18 @@
   if (eventSoundsEl)
     eventSoundsEl.addEventListener("change", function (e) {
       config.widget.eventSounds = e.target.checked;
+      saveWidgetDebounced();
+    });
+
+  if (actionsEl)
+    actionsEl.addEventListener("change", function (e) {
+      config.widget.actions = e.target.checked;
+      saveWidgetDebounced();
+    });
+
+  if (randomActionsEl)
+    randomActionsEl.addEventListener("change", function (e) {
+      config.widget.randomActions = e.target.checked;
       saveWidgetDebounced();
     });
 

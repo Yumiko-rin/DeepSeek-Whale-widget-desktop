@@ -202,6 +202,60 @@ window.DSW = window.DSW || {};
     } catch (err) {}
   }
 
+  // —— 合成音效（零素材） ——
+  // 用 Web Audio 现场合成短音，避免引入任何第三方音频素材（无版权负担）。
+  var audioCtx = null;
+
+  function audioContext() {
+    if (audioCtx) return audioCtx;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try {
+      audioCtx = new AC();
+    } catch (err) {
+      audioCtx = null;
+    }
+    return audioCtx;
+  }
+
+  // 合成音规格：波形、起止频率、时长、峰值增益。
+  var SYNTH = {
+    pop: { type: "sine", from: 620, to: 1240, dur: 0.14, gain: 0.5 },
+    whoosh: { type: "triangle", from: 900, to: 240, dur: 0.26, gain: 0.34 },
+    ding: { type: "sine", from: 1180, to: 1560, dur: 0.42, gain: 0.32 },
+  };
+
+  // 播放合成音效（pop / whoosh / ding）。
+  function playSynth(name) {
+    if (!flags.soundOn) return false;
+    var spec = SYNTH[name];
+    if (!spec) return false;
+    var ctx = audioContext();
+    if (!ctx) return false;
+    try {
+      if (ctx.state === "suspended" && ctx.resume) ctx.resume();
+      var t0 = ctx.currentTime;
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = spec.type;
+      osc.frequency.setValueAtTime(spec.from, t0);
+      if (spec.to !== spec.from) {
+        osc.frequency.exponentialRampToValueAtTime(spec.to, t0 + spec.dur);
+      }
+      var peak = Math.max(0.0001, Math.min(1, flags.soundVol) * spec.gain);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + spec.dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + spec.dur + 0.02);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
   DSW.audio = {
     toAudioSrc: toAudioSrc,
     loadCustomAudio: loadCustomAudio,
@@ -209,6 +263,7 @@ window.DSW = window.DSW || {};
     playPress: playPress,
     playRelease: playRelease,
     playEvent: playEvent,
+    playSynth: playSynth,
     pressDown: pressDown,
     pressUp: pressUp,
   };

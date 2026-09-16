@@ -38,6 +38,9 @@ window.DSW = window.DSW || {};
   DSW.hit.setupHitTest();
   DSW.expression.resetIdle();
 
+  // 动作动效：待机呼吸 + 随机小动作彩蛋（全部由自有素材合成）。
+  if (DSW.actions) DSW.actions.setEnabled(DSW.flags.actions !== false);
+
   // 读取挂件显示配置（尺寸/音效/音量/用量模式）。
   if (DSW.invoke) {
     DSW.invoke("get_config")
