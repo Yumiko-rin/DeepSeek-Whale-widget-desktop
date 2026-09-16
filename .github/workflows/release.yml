@@ -1,0 +1,102 @@
+name: release
+
+# 推 v* 标签时构建各系统安装包并发布到 GitHub Releases；
+# 也可在 Actions 页面手动触发（workflow_dispatch）。
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            label: Windows x64
+            args: '--bundles nsis'
+            rust_targets: ''
+          - platform: macos-latest
+            label: macOS Apple Silicon
+            args: '--target aarch64-apple-darwin --bundles app,dmg'
+            rust_targets: 'aarch64-apple-darwin'
+          - platform: macos-latest
+            label: macOS Intel
+            args: '--target x86_64-apple-darwin --bundles app,dmg'
+            rust_targets: 'x86_64-apple-darwin'
+          - platform: ubuntu-22.04
+            label: Linux x64
+            args: '--bundles deb,appimage'
+            rust_targets: ''
+
+    runs-on: ${{ matrix.platform }}
+    name: ${{ matrix.label }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libgtk-3-dev \
+            libxdo-dev \
+            patchelf \
+            build-essential \
+            file \
+            wget
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build and publish release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'DS 小鲸鱼桌面挂件 v__VERSION__'
+          releaseBody: |
+            DeepSeek 余额小鲸鱼 · 独立桌面挂件（不依赖 DSH / 浏览器插件）。
+
+            **下载对应系统的安装包：**
+
+            | 系统 | 文件 |
+            | --- | --- |
+            | Windows x64 | `*_x64-setup.exe`（NSIS 安装包，当前用户安装，免管理员） |
+            | macOS Apple Silicon | `*_aarch64.dmg` / `*.app` |
+            | macOS Intel | `*_x64.dmg` / `*.app` |
+            | Linux x64 | `*.deb` / `*.AppImage` |
+
+            首次启动会弹出「小鲸鱼设置」，填入 DeepSeek API Key（`sk-…`）即可开始显示余额。
+            配置与账本只保存在本机用户目录，程序直连 DeepSeek 官方接口，不经过任何第三方。
+
+            代码基于原 DSH 插件 [DeepSeek-Balance-Whale-Widget](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget) 独立化改造，谢谢原作者 MeteorNOX。
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
