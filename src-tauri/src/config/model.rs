@@ -179,6 +179,9 @@ pub struct WidgetConfig {
     /// 是否启用随机小动作彩蛋（闲暇时偶尔来一个）。
     #[serde(default = "default_random_actions")]
     pub random_actions: bool,
+    /// 是否启用情绪滤镜（用 CSS filter 表达情绪色调，不新增美术素材）。
+    #[serde(default = "default_mood_filters")]
+    pub mood_filters: bool,
 }
 
 impl Default for WidgetConfig {
@@ -198,6 +201,7 @@ impl Default for WidgetConfig {
             event_sounds: true,
             actions: true,
             random_actions: true,
+            mood_filters: true,
         }
     }
 }
@@ -659,6 +663,11 @@ fn default_actions() -> bool {
 
 /// 随机小动作彩蛋默认开启。
 fn default_random_actions() -> bool {
+    true
+}
+
+/// 情绪滤镜默认开启。
+fn default_mood_filters() -> bool {
     true
 }
 

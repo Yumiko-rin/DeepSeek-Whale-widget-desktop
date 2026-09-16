@@ -154,6 +154,8 @@ window.DSW = window.DSW || {};
     // 动作动效（自有素材合成）与随机小动作彩蛋。
     actions: true,
     randomActions: true,
+    // 情绪滤镜（CSS filter 改色调，不新增美术素材）。
+    moodFilters: true,
     bubbleColor: "#203170",
     customSounds: [],
     dialogueLines: [],

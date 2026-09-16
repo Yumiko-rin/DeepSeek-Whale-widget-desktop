@@ -57,6 +57,8 @@ body {
   pointer-events: none;
   -webkit-user-drag: none;
   user-select: none;
+  /* 情绪滤镜（mood-filter.js）切换时平滑过渡，避免突然变色。 */
+  transition: filter 0.45s ease;
 }
 
 .dshwv-bubble {

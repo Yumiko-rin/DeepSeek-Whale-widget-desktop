@@ -110,6 +110,8 @@ window.DSW = window.DSW || {};
             (nb !== state.balance || nc !== state.currency);
           const currencyChanged =
             state.currency !== null && nc !== state.currency;
+          // 记录旧余额：用于判断是否跨越了疲惫阈值。
+          const previousBalance = state.balance;
           state.balance = nb;
           state.currency = nc;
           state.message = "";
@@ -121,9 +123,19 @@ window.DSW = window.DSW || {};
           }
           // 自动轮询下若余额变化，先展示气泡再执行数字滚动。
           if (changed && !currencyChanged) {
-            // 余额确实变了：给一声事件提示音（与按压音相互独立）+ 跳一下。
-            if (DSW.audio && DSW.audio.playEvent) DSW.audio.playEvent("done");
+            // 余额变化：合成音 ding + 跳一下 + 短暂「开心」情绪闪光。
+            if (DSW.audio && DSW.audio.playSynth) DSW.audio.playSynth("ding");
             if (DSW.actions) DSW.actions.play("hop");
+            if (DSW.moodFilter) DSW.moodFilter.flash("happy", 800);
+            // 跨越疲惫阈值时用事件音提示（与上面的合成音语义不同，不会同时响）。
+            const threshold = Number(flags.exhaustedBalanceThreshold);
+            const prev = Number(previousBalance);
+            if (isFinite(threshold) && isFinite(prev)) {
+              const crossed = prev >= threshold !== nb >= threshold;
+              if (crossed && DSW.audio && DSW.audio.playEvent) {
+                DSW.audio.playEvent("done");
+              }
+            }
             if (!manual) {
               DSW.bubble.showBubble();
               state.status = "changing";

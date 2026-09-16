@@ -65,6 +65,8 @@ window.DSW = window.DSW || {};
       setIcon(getBaseIcon());
     }
     syncActions();
+    // 情绪滤镜：在不动美术素材的前提下用色调表达情绪。
+    if (DSW.moodFilter) DSW.moodFilter.apply(flags.mood, flags.exhaustedMode);
   }
 
   // 动效与静态表情同步：生气抖动、疲惫下沉，其余待机呼吸。
@@ -126,7 +128,10 @@ window.DSW = window.DSW || {};
     if (flags.mood !== "normal" || flags.exhaustedMode || flags.pressing) return;
     var min = Math.max(1, Number(flags.blinkIntervalMinSec) || 4);
     var max = Math.max(min, Number(flags.blinkIntervalMaxSec) || 6);
-    var delay = Math.round((min + Math.random() * (max - min)) * 1000);
+    // 深夜（23:00–06:00）眨眼放慢，配合 mood-filter 的「困倦」色调。
+    var hour = new Date().getHours();
+    var sleepyScale = hour >= 23 || hour < 6 ? 1.8 : 1;
+    var delay = Math.round((min + Math.random() * (max - min)) * 1000 * sleepyScale);
     flags.blinkTimer = setTimeout(function () {
       flags.blinkTimer = null;
       startBlink();

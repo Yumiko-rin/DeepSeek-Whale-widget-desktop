@@ -140,6 +140,9 @@ window.DSW = window.DSW || {};
     flags.actions = w.actions !== false;
     flags.randomActions = w.randomActions !== false;
     if (DSW.actions) DSW.actions.setEnabled(flags.actions);
+    // 情绪滤镜（缺省开启）。
+    flags.moodFilters = w.moodFilters !== false;
+    if (DSW.moodFilter) DSW.moodFilter.setEnabled(flags.moodFilters);
     applyBlinkConfig(w.blinkIntervalMinSec, w.blinkIntervalMaxSec);
     applyExhaustedConfig(w.exhaustedModeEnabled, w.exhaustedBalanceThreshold);
     if (DSW.expression && DSW.expression.handleWidgetConfigChange) {
@@ -165,6 +168,7 @@ window.DSW = window.DSW || {};
         eventSounds: flags.eventSounds,
         actions: flags.actions,
         randomActions: flags.randomActions,
+        moodFilters: flags.moodFilters,
       },
     }).catch(function () {});
   }

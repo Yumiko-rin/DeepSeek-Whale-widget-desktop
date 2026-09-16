@@ -30,6 +30,7 @@
   const eventSoundsEl = document.getElementById("eventSounds");
   const actionsEl = document.getElementById("actions");
   const randomActionsEl = document.getElementById("randomActions");
+  const moodFiltersEl = document.getElementById("moodFilters");
   const modelCatalogEl = document.getElementById("modelCatalog");
   const addSlotEl = document.getElementById("addSlot");
   const extraSlotsEl = document.getElementById("extraSlots");
@@ -277,6 +278,7 @@
     if (eventSoundsEl) eventSoundsEl.checked = w.eventSounds !== false;
     if (actionsEl) actionsEl.checked = w.actions !== false;
     if (randomActionsEl) randomActionsEl.checked = w.randomActions !== false;
+    if (moodFiltersEl) moodFiltersEl.checked = w.moodFilters !== false;
     const hue = hueFromHex(w.bubbleColor || "#203170");
     bubbleColorEl.value = String(hue);
     const vol = typeof w.vol === "number" ? w.vol : 0.9;
@@ -875,6 +877,12 @@
   if (randomActionsEl)
     randomActionsEl.addEventListener("change", function (e) {
       config.widget.randomActions = e.target.checked;
+      saveWidgetDebounced();
+    });
+
+  if (moodFiltersEl)
+    moodFiltersEl.addEventListener("change", function (e) {
+      config.widget.moodFilters = e.target.checked;
       saveWidgetDebounced();
     });
 
