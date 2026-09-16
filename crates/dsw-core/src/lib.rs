@@ -6,4 +6,5 @@
 //!   （Windows 上 Tauri 的测试二进制会依赖 `WebView2Loader.dll`，难以在 CI 之外验证）；
 //! - 记账、峰谷判定、预算与版本比较这类「算错了很隐蔽」的逻辑，可以逐个用例钉住。
 
+pub mod usage;
 pub mod version;
