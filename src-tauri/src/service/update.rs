@@ -1,9 +1,11 @@
 //! 版本检查服务
 //!
 //! 通过本项目自己的 GitHub Releases 接口读取最新版本（`tag_name`），
-//! 与当前编译版本比较，结果供 `controller::update` 的 `check_update` 命令调用。
+//! 版本比较交给纯逻辑 crate `dsw-core`（可在无 Tauri 环境下直接单测），
+//! 结果供 `controller::update` 的 `check_update` 命令调用。
 
 use crate::model::UpdateCheckResult;
+use dsw_core::version::{evaluate_versions, normalize_version};
 use serde_json::Value;
 use std::time::Duration;
 
@@ -11,12 +13,7 @@ use std::time::Duration;
 const VERSION_URL: &str =
     "https://api.github.com/repos/Yumiko-rin/DeepSeek-Whale-widget-desktop/releases/latest";
 
-/// 剥掉版本号前缀 `v` / `V`，便于与 Cargo 里的版本字符串比较。
-fn normalize_version(raw: &str) -> String {
-    raw.trim().trim_start_matches(['v', 'V']).to_string()
-}
-
-/// 请求远端版本清单并与当前版本字符串比较，返回版本检查结果。
+/// 请求远端版本清单并与当前版本比较，返回版本检查结果。
 pub async fn check_update_version() -> Result<UpdateCheckResult, String> {
     let current_version = env!("CARGO_PKG_VERSION").to_string();
 
@@ -51,11 +48,12 @@ pub async fn check_update_version() -> Result<UpdateCheckResult, String> {
         .ok_or_else(|| "版本接口返回结构异常".to_string())?;
 
     let latest_version = normalize_version(raw_latest);
-    let up_to_date = latest_version == current_version;
+    let (up_to_date, has_update) = evaluate_versions(&current_version, &latest_version);
 
     Ok(UpdateCheckResult {
         current_version,
         latest_version,
         up_to_date,
+        has_update,
     })
 }

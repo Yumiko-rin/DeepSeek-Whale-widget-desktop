@@ -80,6 +80,19 @@ npm run build
 npm run build -- --target aarch64-apple-darwin --bundles app,dmg
 ```
 
+### 单元测试 · Tests
+
+```bash
+# 纯逻辑单元测试（版本比较；后续的记账/峰谷/预算算法同样放这里）：不链接 Tauri，任何平台都能直接跑
+cd crates/dsw-core && cargo test
+```
+
+- 与 UI 无关的纯逻辑集中在 `crates/dsw-core`，因此测试**不需要**链接 Tauri / WebView2，`cargo test` 秒级完成；
+  `src-tauri` 只保留窗口、托盘、IPC 这类平台相关的壳。
+- **Windows 上仓库路径含非 ASCII 字符时**：MinGW 的 `dlltool` / `windres` 打不开这类路径，
+  本地构建会报 `Invalid argument` 或 `No such file or directory`；把仓库放到纯 ASCII 路径，
+  或把 `CARGO_TARGET_DIR` 指到 ASCII 目录即可。
+
 ---
 
 ## 首次配置 · First-run Setup

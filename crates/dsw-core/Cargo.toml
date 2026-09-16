@@ -1,0 +1,9 @@
+[package]
+name = "dsw-core"
+version = "1.0.1"
+edition = "2021"
+description = "DS Desktop Whale · 与 UI/Tauri 无关的纯逻辑内核（版本比较、记账算法、峰谷判定等）"
+license = "MIT"
+publish = false
+
+[dependencies]

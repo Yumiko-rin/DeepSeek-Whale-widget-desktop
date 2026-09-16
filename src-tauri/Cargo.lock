@@ -1036,12 +1036,13 @@ dependencies = [
 
 [[package]]
 name = "ds-desktop-whale"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "auto-launch",
  "base64 0.22.1",
  "chrono",
  "dirs 5.0.1",
+ "dsw-core",
  "env_logger",
  "log",
  "raw-window-handle",
@@ -1056,6 +1057,10 @@ dependencies = [
  "windows 0.58.0",
  "winreg 0.52.0",
 ]
+
+[[package]]
+name = "dsw-core"
+version = "1.0.1"
 
 [[package]]
 name = "dtoa"

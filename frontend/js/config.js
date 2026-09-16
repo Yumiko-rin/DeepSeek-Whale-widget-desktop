@@ -810,16 +810,26 @@
       });
     });
 
-  // 检查更新后根据结果切换提示或确认弹窗。
+  // 检查更新后根据结果切换提示或确认弹窗（有新版 / 已最新 / 本地版本更新三种关系）。
   checkUpdateEl.addEventListener("click", function () {
     invoke("check_update")
       .then(function (res) {
-        if (res && res.upToDate === true) {
-          showTip("当前为最新版本，无需更新");
-        } else if (res && res.upToDate === false) {
-          showConfirm("当前版本过低，是否更新？");
-        } else {
+        if (!res || typeof res.hasUpdate !== "boolean") {
           showTip("检查更新失败");
+          return;
+        }
+        const cur = res.currentVersion || "?";
+        const latest = res.latestVersion || "?";
+        if (res.hasUpdate) {
+          showConfirm(
+            "发现新版本 v" + latest + "（当前 v" + cur + "），是否前往下载？",
+          );
+        } else if (res.upToDate) {
+          showTip("当前已是最新版本 v" + cur);
+        } else {
+          showTip(
+            "你使用的是较新的本地版本 v" + cur + "（线上最新 v" + latest + "）",
+          );
         }
       })
       .catch(function (err) {
