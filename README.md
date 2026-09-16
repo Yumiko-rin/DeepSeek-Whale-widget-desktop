@@ -14,8 +14,8 @@ A cross-platform desktop widget built with Tauri v2. It keeps a cute whale pinne
 
 | 系统 | 文件 | 说明 |
 | --- | --- | --- |
-| Windows 10/11 x64 | `DS.Desktop.Whale_1.0.0_x64-setup.exe` | NSIS 安装包，当前用户安装，免管理员 |
-| Windows 10/11 x64 便携版 | `DS.Desktop.Whale_1.0.0_x64-portable.exe` | 免安装，双击即用 |
+| Windows 10/11 x64 | `*_x64-setup.exe` | NSIS 安装包，当前用户安装，免管理员 |
+| Windows 10/11 x64 便携版 | `*_x64-portable.exe` | 免安装，双击即用 |
 | macOS（Apple Silicon） | `*_aarch64.dmg` / `*.app` | 拖入「应用程序」即可 |
 | macOS（Intel） | `*_x64.dmg` / `*.app` | 同上 |
 | Linux x64 | `*.deb` / `*.AppImage` | `sudo dpkg -i` 安装，或给 AppImage 加执行权限后直接运行 |

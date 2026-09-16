@@ -1,7 +1,7 @@
 {
   "name": "ds-desktop-whale",
-  "version": "1.0.0",
-  "description": "DS Desktop Whale · DeepSeek 余额查询与记账 · 独立 Windows 桌面版",
+  "version": "1.0.1",
+  "description": "DS Desktop Whale · DeepSeek 余额查询与记账 · 独立跨平台桌面挂件（Windows / macOS / Linux）",
   "private": true,
   "type": "module",
   "scripts": {
