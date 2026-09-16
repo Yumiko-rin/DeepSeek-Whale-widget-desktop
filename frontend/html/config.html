@@ -95,6 +95,7 @@
             <select id="widgetSoundSet">
               <option value="duck">小黄鸭</option>
               <option value="fx1">音效1</option>
+              <option value="click">点击音</option>
             </select>
             <button id="addCustomSound" type="button" class="toggle-eye">自定义音效</button>
           </label>
@@ -103,6 +104,13 @@
             <input id="widgetVol" type="range" min="0" max="1" step="0.01" />
             <span id="widgetVolPct">90%</span>
           </label>
+          <div class="sys-row">
+            <div class="sys-title">事件音效（余额变化 / 刷新失败）</div>
+            <label class="switch">
+              <input id="eventSounds" type="checkbox" />
+              <span class="slider"></span>
+            </label>
+          </div>
           <label class="field">
             <span class="field-label short">眨眼频率</span>
             <div class="range-inputs">

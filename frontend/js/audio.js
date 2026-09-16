@@ -16,8 +16,11 @@ window.DSW = window.DSW || {};
   // 预设音效源路径集合（用于区分预设与自定义路径）。
   var PRESET_SRCS = [];
   for (const k in C.SOUND_SETS) {
-    PRESET_SRCS.push(C.SOUND_SETS[k].press, C.SOUND_SETS[k].release);
+    if (C.SOUND_SETS[k].press) PRESET_SRCS.push(C.SOUND_SETS[k].press);
+    if (C.SOUND_SETS[k].release) PRESET_SRCS.push(C.SOUND_SETS[k].release);
   }
+  // 事件音效同样是内置资源，不能走自定义文件的 convertFileSrc 路径。
+  for (const evName in C.EVENT_SOUNDS) PRESET_SRCS.push(C.EVENT_SOUNDS[evName]);
 
   // 将路径转换为可播放的音频源。
   function toAudioSrc(p) {
@@ -56,13 +59,18 @@ window.DSW = window.DSW || {};
     try {
       const preset = C.SOUND_SETS[flags.soundSet];
       if (preset) {
-        flags.singleFileSound = false;
+        // 单发音效组（release 为 null）只播按下音，等价于自定义单文件的行为。
+        flags.singleFileSound = !preset.release;
         flags.pressAudio = new Audio(toAudioSrc(preset.press));
-        flags.releaseAudio = new Audio(toAudioSrc(preset.release));
         flags.pressAudio.preload = "auto";
         flags.pressAudio.volume = flags.soundVol;
-        flags.releaseAudio.preload = "auto";
-        flags.releaseAudio.volume = flags.soundVol;
+        if (preset.release) {
+          flags.releaseAudio = new Audio(toAudioSrc(preset.release));
+          flags.releaseAudio.preload = "auto";
+          flags.releaseAudio.volume = flags.soundVol;
+        } else {
+          flags.releaseAudio = null;
+        }
       } else if (typeof flags.soundSet === "string" && flags.soundSet) {
         // 自定义单文件：仅按下播放一次，无松开音效。
         flags.singleFileSound = true;
@@ -165,12 +173,42 @@ window.DSW = window.DSW || {};
     }
   }
 
+  // —— 事件音效 ——
+  // 与按压音效分开：按压音表达「被摸」，事件音表达「发生了什么」。
+  var eventAudios = {};
+
+  function ensureEventAudios() {
+    if (Object.keys(eventAudios).length) return;
+    for (const name in C.EVENT_SOUNDS) {
+      try {
+        var audio = new Audio(toAudioSrc(C.EVENT_SOUNDS[name]));
+        audio.preload = "auto";
+        eventAudios[name] = audio;
+      } catch (err) {}
+    }
+  }
+
+  // 播放事件音效（start / done / error），受总开关与音量控制。
+  function playEvent(name) {
+    if (!flags.soundOn || flags.eventSounds === false) return;
+    ensureEventAudios();
+    var audio = eventAudios[name];
+    if (!audio) return;
+    try {
+      audio.volume = flags.soundVol;
+      audio.currentTime = 0;
+      const p = audio.play();
+      if (p && typeof p.catch === "function") p.catch(function () {});
+    } catch (err) {}
+  }
+
   DSW.audio = {
     toAudioSrc: toAudioSrc,
     loadCustomAudio: loadCustomAudio,
     applySoundSet: applySoundSet,
     playPress: playPress,
     playRelease: playRelease,
+    playEvent: playEvent,
     pressDown: pressDown,
     pressUp: pressUp,
   };

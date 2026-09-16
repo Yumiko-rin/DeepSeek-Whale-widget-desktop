@@ -27,6 +27,7 @@
   const widgetSoundSetEl = document.getElementById("widgetSoundSet");
   const widgetVolEl = document.getElementById("widgetVol");
   const widgetVolPctEl = document.getElementById("widgetVolPct");
+  const eventSoundsEl = document.getElementById("eventSounds");
   const blinkIntervalMinSecEl = document.getElementById("blinkIntervalMinSec");
   const blinkIntervalMaxSecEl = document.getElementById("blinkIntervalMaxSec");
   const exhaustedModeEnabledEl = document.getElementById(
@@ -258,6 +259,7 @@
     widgetScaleEl.value = String(level);
     widgetScaleValEl.textContent = String(level);
     restoreSoundOptions(w);
+    if (eventSoundsEl) eventSoundsEl.checked = w.eventSounds !== false;
     const hue = hueFromHex(w.bubbleColor || "#203170");
     bubbleColorEl.value = String(hue);
     const vol = typeof w.vol === "number" ? w.vol : 0.9;
@@ -499,6 +501,12 @@
     config.widget.soundSet = e.target.value;
     saveWidgetDebounced();
   });
+
+  if (eventSoundsEl)
+    eventSoundsEl.addEventListener("change", function (e) {
+      config.widget.eventSounds = e.target.checked;
+      saveWidgetDebounced();
+    });
 
   // 新增台词后直接聚焦最后一项，便于连续录入。
   if (addLineEl)

@@ -121,6 +121,8 @@ window.DSW = window.DSW || {};
           }
           // 自动轮询下若余额变化，先展示气泡再执行数字滚动。
           if (changed && !currencyChanged) {
+            // 余额确实变了：给一声事件提示音（与按压音相互独立）。
+            if (DSW.audio && DSW.audio.playEvent) DSW.audio.playEvent("done");
             if (!manual) {
               DSW.bubble.showBubble();
               state.status = "changing";
@@ -150,12 +152,19 @@ window.DSW = window.DSW || {};
         } else {
           state.status = "error";
           state.message = data && data.error ? String(data.error) : "获取失败";
+          // 只在手动刷新时提示失败，避免自动轮询失败时反复响。
+          if (manual && DSW.audio && DSW.audio.playEvent) {
+            DSW.audio.playEvent("error");
+          }
           render();
         }
       })
       .catch(function () {
         state.status = "error";
         state.message = "获取失败";
+        if (manual && DSW.audio && DSW.audio.playEvent) {
+          DSW.audio.playEvent("error");
+        }
         render();
       })
       .finally(function () {

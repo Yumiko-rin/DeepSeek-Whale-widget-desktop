@@ -52,6 +52,20 @@ window.DSW = window.DSW || {};
         press: "../assets/audio/fx1-press.mp3",
         release: "../assets/audio/fx1-release.mp3",
       },
+      // 单发音效：只有按下音、没有松开音。
+      // click.wav 取自 MerZlin/dsh-pet-indesktop 的点击音效包（MIT）。
+      click: {
+        press: "../assets/audio/click.wav",
+        release: null,
+      },
+    },
+
+    // 事件音效：与按压音效相互独立，按事件触发。
+    // 思路参考 dsh-pet-indesktop 的「Agent 联动音效」，落到本挂件自身的事件上。
+    EVENT_SOUNDS: {
+      start: "../assets/audio/agent-start.wav",
+      done: "../assets/audio/agent-done.wav",
+      error: "../assets/audio/agent-error.wav",
     },
 
     // —— 表情状态机常量 ——
@@ -136,6 +150,7 @@ window.DSW = window.DSW || {};
     soundOn: true,
     soundVol: 0.9,
     soundSet: "duck",
+    eventSounds: true,
     bubbleColor: "#203170",
     customSounds: [],
     dialogueLines: [],

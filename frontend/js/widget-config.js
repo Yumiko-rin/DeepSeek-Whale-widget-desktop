@@ -134,6 +134,8 @@ window.DSW = window.DSW || {};
     }
     if (Array.isArray(w.customSounds)) flags.customSounds = w.customSounds;
     flags.soundOn = w.sound !== false;
+    // 事件音效总开关（缺省开启，兼容旧配置）。
+    flags.eventSounds = w.eventSounds !== false;
     applyBlinkConfig(w.blinkIntervalMinSec, w.blinkIntervalMaxSec);
     applyExhaustedConfig(w.exhaustedModeEnabled, w.exhaustedBalanceThreshold);
     if (DSW.expression && DSW.expression.handleWidgetConfigChange) {
@@ -156,6 +158,7 @@ window.DSW = window.DSW || {};
         blinkIntervalMaxSec: flags.blinkIntervalMaxSec,
         exhaustedModeEnabled: flags.exhaustedModeEnabled,
         exhaustedBalanceThreshold: flags.exhaustedBalanceThreshold,
+        eventSounds: flags.eventSounds,
       },
     }).catch(function () {});
   }

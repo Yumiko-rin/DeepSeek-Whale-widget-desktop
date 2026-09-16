@@ -91,6 +91,12 @@ pub struct WidgetConfig {
     /// 余额不足疲惫模式阈值（元）。
     #[serde(default = "default_exhausted_balance_threshold")]
     pub exhausted_balance_threshold: f64,
+    /// 是否播放事件音效（余额变化 / 获取失败）。
+    ///
+    /// 思路参考 `MerZlin/dsh-pet-indesktop` 的「Agent 联动音效」：把事件音与按压音分开，
+    /// 这里落到本挂件真正拥有的事件上（余额变化、请求失败）。
+    #[serde(default = "default_event_sounds")]
+    pub event_sounds: bool,
 }
 
 impl Default for WidgetConfig {
@@ -107,6 +113,7 @@ impl Default for WidgetConfig {
             blink_interval_max_sec: 6,
             exhausted_mode_enabled: true,
             exhausted_balance_threshold: 5.0,
+            event_sounds: true,
         }
     }
 }
@@ -271,6 +278,11 @@ fn default_exhausted_mode_enabled() -> bool {
 /// 返回疲惫模式默认阈值（元）。
 fn default_exhausted_balance_threshold() -> f64 {
     5.0
+}
+
+/// 事件音效默认开启（旧配置无此字段时保持原有行为：有声音）。
+fn default_event_sounds() -> bool {
+    true
 }
 
 /// 返回默认全局颜色。
