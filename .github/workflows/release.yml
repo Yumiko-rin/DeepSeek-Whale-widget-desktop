@@ -110,6 +110,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
-          gh release upload "v$VERSION" \
-            "src-tauri/target/release/DS Desktop Whale.exe#DS.Desktop.Whale_${VERSION}_x64-portable.exe" \
-            --clobber
+          PORTABLE="src-tauri/target/release/DS.Desktop.Whale_${VERSION}_x64-portable.exe"
+          cp "src-tauri/target/release/DS Desktop Whale.exe" "$PORTABLE"
+          gh release upload "v$VERSION" "$PORTABLE" --clobber
